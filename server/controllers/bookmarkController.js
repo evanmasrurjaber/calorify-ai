@@ -27,8 +27,20 @@ const getBookmarks = async (req, res) => {
 // @route DELETE /api/bookmarks/:index
 const removeBookmark = async (req, res) => {
   try {
-    // TODO: Remove bookmark by ID or index from the bookmarks array
-    res.status(501).json({ message: 'removeBookmark not yet implemented' });
+    const { index } = req.params;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const idx = parseInt(index, 10);
+    if (isNaN(idx) || idx < 0 || idx >= user.bookmarks.length) {
+      return res.status(400).json({ message: 'Invalid bookmark index' });
+    }
+
+    user.bookmarks.splice(idx, 1);
+    user.markModified('bookmarks');
+    await user.save();
+
+    res.json({ message: 'Recipe removed from bookmarks', bookmarks: user.bookmarks });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
