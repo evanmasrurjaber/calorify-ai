@@ -12,6 +12,8 @@ export default function Profile() {
     weight: '',
     height: '',
     goal: 'maintain',
+    gender: 'prefer_not_to_say',
+    activityLevel: 'sedentary',
     medicalConditions: '',
     allergies: '',
     notifications: {
@@ -202,8 +204,37 @@ export default function Profile() {
                   <option value="gain_muscle">Gain Muscle</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Gender</label>
+                <select
+                  name="gender"
+                  value={profile.gender}
+                  onChange={handleChange}
+                  className="w-full bg-gray-950 border border-gray-800 focus:border-purple-500 rounded-xl px-4 py-3 text-white focus:outline-none transition"
+                >
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="prefer_not_to_say">Prefer Not to Say</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  Activity Level
+                  <span className="ml-2 text-gray-600 normal-case font-normal">(used to calculate your calorie target)</span>
+                </label>
+                <select
+                  name="activityLevel"
+                  value={profile.activityLevel}
+                  onChange={handleChange}
+                  className="w-full bg-gray-950 border border-gray-800 focus:border-purple-500 rounded-xl px-4 py-3 text-white focus:outline-none transition"
+                >
+                  <option value="sedentary">Sedentary — desk job, little or no exercise</option>
+                  <option value="lightly_active">Lightly Active — light exercise 1–3 days/week</option>
+                  <option value="moderately_active">Moderately Active — moderate exercise 3–5 days/week</option>
+                  <option value="very_active">Very Active — hard training 6–7 days/week</option>
+                </select>
+              </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Medical Conditions (comma separated)</label>

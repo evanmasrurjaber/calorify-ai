@@ -1,41 +1,141 @@
 const DietPlan = require('../models/DietPlan');
 const User = require('../models/User');
+const MedicalReport = require('../models/MedicalReport');
+const Progress = require('../models/Progress');
 const { generateText } = require('../services/geminiService');
 
-
-// @route POST /api/diet-plans/generate
+// ─── Helper: Generate a Pollinations AI food image URL ───────────────────────
 function generateDishImageURL(dishName) {
   if (!dishName) return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800';
-  // Use Pollinations AI with the highly realistic 'flux' model, driven by the dish name
   const finalPrompt = `Professional close-up food photography of authentic Bangladeshi ${dishName}, showing the main ingredients clearly, 4k, photorealistic, highly detailed, appetizing`;
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?width=800&height=800&nologo=true&model=flux`;
 }
 
-const generateDietPlan = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+// ─── Helper: Compute TDEE using Mifflin-St Jeor formula ─────────────────────
+// BMR = 10*weight(kg) + 6.25*height(cm) - 5*age(yr) ± gender_constant
+// TDEE = BMR * activityMultiplier
+// Goal adjustment: -15% for lose_weight, +10% for gain_muscle
+function computeTDEE(user) {
+  const activityMultipliers = {
+    sedentary: 1.2,
+    lightly_active: 1.375,
+    moderately_active: 1.55,
+    very_active: 1.725,
+  };
 
-    // Deactivate previous active plans
-    await DietPlan.updateMany({ user: user._id, isActive: true }, { isActive: false });
+  const weight = user.weight || 70;  // kg
+  const height = user.height || 170; // cm
+  const age    = user.age    || 25;  // years
 
-    // Generate a 7-day diet plan based on user health profile
-    const goalText = user.goal === 'lose_weight' ? 'weight loss' : user.goal === 'gain_muscle' ? 'muscle gain' : 'weight maintenance';
-    const medical = user.medicalConditions?.length > 0 ? `Medical conditions: ${user.medicalConditions.join(', ')}` : 'No major medical conditions';
-    const allergies = user.allergies?.length > 0 ? `Allergies: ${user.allergies.join(', ')}` : 'No allergies';
+  // Gender constant: male = +5, female = -161, prefer_not_to_say = average (-78)
+  const genderConstant =
+    user.gender === 'male'   ? 5  :
+    user.gender === 'female' ? -161 : -78;
 
-    const prompt = `
-Generate a structured 7-day Bangladeshi diet plan for a user with the following profile:
-- Age: ${user.age || 25}
-- Weight: ${user.weight || 70} kg
-- Height: ${user.height || 170} cm
-- Goal: ${goalText}
-- Daily Calorie Target: ${user.dailyCalorieTarget || 2000} kcal
-- ${medical}
-- ${allergies}
+  const bmr        = 10 * weight + 6.25 * height - 5 * age + genderConstant;
+  const multiplier = activityMultipliers[user.activityLevel] || 1.2;
+  let tdee         = Math.round(bmr * multiplier);
 
-Provide the diet plan in exactly the following JSON structure:
-[
+  if (user.goal === 'lose_weight') tdee = Math.round(tdee * 0.85);
+  if (user.goal === 'gain_muscle') tdee = Math.round(tdee * 1.10);
+
+  return Math.max(tdee, 1200); // Safety floor: never below 1200 kcal
+}
+
+// ─── Helper: Merge data from all medical reports ─────────────────────────────
+// Q3 rule: Merge — union arrays (diagnoses, allergies), latest value for scalars (hba1c)
+function mergeMedicalReports(reports) {
+  if (!reports || reports.length === 0) return null;
+
+  const merged = {
+    diagnoses: [],
+    allergies: [],
+    hba1c: null,
+  };
+
+  // Process from oldest to newest so latest scalar values overwrite
+  const sorted = [...reports].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+  for (const report of sorted) {
+    const pd = report.parsedData;
+    if (!pd) continue;
+
+    // Union: add new diagnoses not already in the set
+    if (pd.diagnoses?.length) {
+      for (const d of pd.diagnoses) {
+        if (d && !merged.diagnoses.includes(d)) merged.diagnoses.push(d);
+      }
+    }
+
+    // Union: add new allergies not already in the set
+    if (pd.allergies?.length) {
+      for (const a of pd.allergies) {
+        if (a && !merged.allergies.includes(a)) merged.allergies.push(a);
+      }
+    }
+
+    // Latest wins for scalar fields
+    if (pd.hba1c != null) merged.hba1c = pd.hba1c;
+  }
+
+  return merged;
+}
+
+// ─── Helper: Build the multi-source Gemini prompt ────────────────────────────
+function buildDietPlanPrompt({ user, reportData, wearableData, goalText }) {
+  // Section: Health Profile (always present)
+  const profileSection = `
+=== PERSONAL HEALTH PROFILE ===
+- Age: ${user.age || 'Not specified'} years
+- Weight: ${user.weight || 'Not specified'} kg
+- Height: ${user.height || 'Not specified'} cm
+- Gender: ${user.gender || 'Not specified'}
+- Activity Level: ${(user.activityLevel || 'sedentary').replace(/_/g, ' ')}
+- Daily Calorie Target (TDEE-calculated): ${user.dailyCalorieTarget} kcal
+- Fitness Goal: ${goalText}
+${user.medicalConditions?.length ? `- Medical Conditions (self-reported): ${user.medicalConditions.join(', ')}` : '- Medical Conditions: None reported'}
+${user.allergies?.length ? `- Allergies (self-reported): ${user.allergies.join(', ')}` : '- Allergies: None reported'}`.trim();
+
+  // Section: Medical Reports (optional — only included if reports exist)
+  let medicalSection = '';
+  if (reportData) {
+    const diagStr = reportData.diagnoses?.length ? reportData.diagnoses.join(', ') : 'None on record';
+    const hba1cStr = reportData.hba1c != null ? `${reportData.hba1c}%` : 'Not recorded';
+    const medAllergyStr = reportData.allergies?.length ? reportData.allergies.join(', ') : 'None on record';
+    medicalSection = `
+=== MEDICAL REPORT DATA (merged from all uploaded reports) ===
+- Confirmed Diagnoses: ${diagStr}
+- HbA1c Level: ${hba1cStr}
+- Medically Confirmed Allergies: ${medAllergyStr}`.trim();
+  }
+
+  // Section: Wearable / Activity Data (optional — only included if a Progress log exists)
+  let wearableSection = '';
+  if (wearableData) {
+    wearableSection = `
+=== WEARABLE / ACTIVITY DATA (most recent log) ===
+- Daily Steps Recorded: ${wearableData.steps?.toLocaleString() || 0}
+- Active Calories Burned: ${wearableData.caloriesBurned || 0} kcal
+- Date Recorded: ${wearableData.date ? new Date(wearableData.date).toDateString() : 'Unknown'}`.trim();
+  }
+
+  // Assemble rules based on available data
+  const rules = [
+    `Avoid ALL allergens mentioned across both the health profile and medical report sections.`,
+    `Keep each day's total calories within ±75 kcal of the Daily Calorie Target (${user.dailyCalorieTarget} kcal).`,
+    `All meals must be authentic Bangladeshi dishes.`,
+    `Each day must have exactly 4 meals: breakfast, lunch, snacks, dinner — in that order.`,
+  ];
+  if (reportData?.hba1c != null && reportData.hba1c > 6.5) {
+    rules.push(`IMPORTANT: HbA1c is ${reportData.hba1c}% — generate a diabetic-friendly, low-glycemic index plan. Minimize simple carbohydrates, prioritize high-fiber foods.`);
+  }
+  if (wearableData?.steps > 10000) {
+    rules.push(`User is highly active (${wearableData.steps?.toLocaleString()} steps) — adjust meal timing to support recovery and muscle repair.`);
+  }
+
+  const rulesSection = `=== INSTRUCTIONS ===\n${rules.map((r, i) => `${i + 1}. ${r}`).join('\n')}`;
+
+  const exampleStructure = `[
   {
     "day": "Monday",
     "meals": [
@@ -44,94 +144,175 @@ Provide the diet plan in exactly the following JSON structure:
       { "meal": "snacks", "name": "Muri Makha (Puffed Rice) & Green Tea", "calories": 200, "carbs": 30, "protein": 5, "fat": 5 },
       { "meal": "dinner", "name": "Chicken Khichuri (Low Oil)", "calories": 600, "carbs": 70, "protein": 25, "fat": 15 }
     ]
-  },
-  {
-    "day": "Tuesday",
-    "meals": [
-      { "meal": "breakfast", "name": "Oats Khichuri with Egg White", "calories": 380, "carbs": 45, "protein": 18, "fat": 8 },
-      { "meal": "lunch", "name": "Plain Rice with Lentil Soup & Bhorta", "calories": 650, "carbs": 85, "protein": 20, "fat": 10 },
-      { "meal": "snacks", "name": "Apple slices with Almonds", "calories": 180, "carbs": 25, "protein": 4, "fat": 8 },
-      { "meal": "dinner", "name": "Roti with Grilled Chicken & Salad", "calories": 580, "carbs": 55, "protein": 32, "fat": 12 }
-    ]
-  },
-  {
-    "day": "Wednesday",
-    "meals": [
-      { "meal": "breakfast", "name": "Semolina (Halwa) with low sugar & Egg Poach", "calories": 420, "carbs": 55, "protein": 14, "fat": 12 },
-      { "meal": "lunch", "name": "Plain Rice with Beef Rezala (lean) & Gourd", "calories": 720, "carbs": 90, "protein": 35, "fat": 18 },
-      { "meal": "snacks", "name": "Chana (boiled Chickpeas) salad", "calories": 220, "carbs": 35, "protein": 10, "fat": 4 },
-      { "meal": "dinner", "name": "Vegetable Soup with multigrain Roti", "calories": 500, "carbs": 65, "protein": 15, "fat": 8 }
-    ]
-  },
-  {
-    "day": "Thursday",
-    "meals": [
-      { "meal": "breakfast", "name": "Whole wheat bread toast with Peanut Butter", "calories": 360, "carbs": 40, "protein": 12, "fat": 15 },
-      { "meal": "lunch", "name": "Plain Rice with Hilsha Fish Curry & Lal Shak", "calories": 680, "carbs": 80, "protein": 28, "fat": 18 },
-      { "meal": "snacks", "name": "Singara (low oil) and Tea", "calories": 250, "carbs": 35, "protein": 4, "fat": 10 },
-      { "meal": "dinner", "name": "Roti with Mixed Vegetable Curry", "calories": 480, "carbs": 65, "protein": 12, "fat": 8 }
-    ]
-  },
-  {
-    "day": "Friday",
-    "meals": [
-      { "meal": "breakfast", "name": "Attar Roti with Mixed Dal fry", "calories": 390, "carbs": 52, "protein": 14, "fat": 9 },
-      { "meal": "lunch", "name": "Bangladeshi style Morog Polao (Light version)", "calories": 800, "carbs": 95, "protein": 35, "fat": 20 },
-      { "meal": "snacks", "name": "Guava & Papaya slices", "calories": 120, "carbs": 28, "protein": 2, "fat": 0.5 },
-      { "meal": "dinner", "name": "Roti with Rui Fish Curry", "calories": 530, "carbs": 60, "protein": 25, "fat": 12 }
-    ]
-  },
-  {
-    "day": "Saturday",
-    "meals": [
-      { "meal": "breakfast", "name": "Boiled Egg with Brown Bread & Tea", "calories": 340, "carbs": 35, "protein": 15, "fat": 10 },
-      { "meal": "lunch", "name": "Plain Rice with Mash Dal & Chicken Curry", "calories": 710, "carbs": 85, "protein": 32, "fat": 15 },
-      { "meal": "snacks", "name": "Yogurt (Dahi) with Honey", "calories": 190, "carbs": 25, "protein": 6, "fat": 6 },
-      { "meal": "dinner", "name": "Roti with Egg Bhurji & Mixed Salad", "calories": 520, "carbs": 55, "protein": 20, "fat": 14 }
-    ]
-  },
-  {
-    "day": "Sunday",
-    "meals": [
-      { "meal": "breakfast", "name": "Attar Roti with Aloo Bhaji & Egg", "calories": 410, "carbs": 58, "protein": 13, "fat": 11 },
-      { "meal": "lunch", "name": "Plain Rice with Pangas Fish & Cabbage curry", "calories": 690, "carbs": 82, "protein": 26, "fat": 16 },
-      { "meal": "snacks", "name": "Puffed Rice (Muri) with Chanachur", "calories": 180, "carbs": 28, "protein": 4, "fat": 6 },
-      { "meal": "dinner", "name": "Mixed Vegetable Khichuri", "calories": 560, "carbs": 75, "protein": 15, "fat": 12 }
-    ]
   }
-]
+]`;
 
-Return ONLY raw valid JSON matching this schema. Do not include markdown code block formatting.
-`;
+  return `Generate a structured 7-day Bangladeshi diet plan for a user with the following profile:
 
-    const rawResponse = await generateText(prompt);
-    const cleanJsonStr = rawResponse.replace(/```json|```/g, '').trim();
-    const parsedPlan = JSON.parse(cleanJsonStr);
+${profileSection}
+${medicalSection ? '\n' + medicalSection : ''}
+${wearableSection ? '\n' + wearableSection : ''}
 
-    // Process plan to calculate totalCalories for each day
-    const planDays = parsedPlan.map(dayData => {
-      const totalCalories = dayData.meals.reduce((sum, m) => sum + (m.calories || 0), 0);
-      return {
-        day: dayData.day,
-        meals: dayData.meals,
-        totalCalories
-      };
+${rulesSection}
+
+Return ONLY raw valid JSON matching this schema for all 7 days (Monday through Sunday). Do not include markdown code block formatting.
+
+Example structure (follow this exactly for all 7 days):
+${exampleStructure}`;
+}
+
+// ─── Helper: Build human-readable labels ─────────────────────────────────────
+function getGoalText(goal) {
+  if (goal === 'lose_weight') return 'Weight Loss';
+  if (goal === 'gain_muscle') return 'Muscle Gain';
+  return 'Weight Maintenance';
+}
+
+function getGoalLabel(goal) {
+  if (goal === 'lose_weight') return 'Lose Weight 📉';
+  if (goal === 'gain_muscle') return 'Gain Muscle 💪';
+  return 'Maintain Weight ⚖️';
+}
+
+function getActivityLabel(level) {
+  const map = {
+    sedentary: 'Sedentary',
+    lightly_active: 'Lightly Active',
+    moderately_active: 'Moderately Active',
+    very_active: 'Very Active',
+  };
+  return map[level] || 'Sedentary';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @route  GET /api/diet-plans/generation-context
+// Returns a preview of all data sources that will be used for generation
+// so the frontend can display the Data Sources Panel without generating a plan
+// ─────────────────────────────────────────────────────────────────────────────
+const getGenerationContext = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Check profile completeness (all core fields must be present)
+    const isProfileComplete = !!(user.age && user.weight && user.height && user.goal);
+
+    // Calculate TDEE for preview (but don't save yet)
+    const calculatedTarget = computeTDEE(user);
+
+    // Fetch and merge all medical reports
+    const allReports = await MedicalReport.find({ user: user._id }).sort({ createdAt: -1 });
+    const mergedReport = mergeMedicalReports(allReports);
+
+    // Fetch most recent wearable/progress log
+    const latestProgress = await Progress.findOne({ user: user._id }).sort({ date: -1 });
+
+    res.json({
+      profile: {
+        isComplete: isProfileComplete,
+        age: user.age,
+        weight: user.weight,
+        height: user.height,
+        gender: user.gender,
+        activityLevel: user.activityLevel,
+        activityLabel: getActivityLabel(user.activityLevel),
+        goal: user.goal,
+        goalLabel: getGoalLabel(user.goal),
+        calculatedTarget,
+        medicalConditions: user.medicalConditions,
+        allergies: user.allergies,
+      },
+      medicalReport: mergedReport
+        ? { available: true, ...mergedReport }
+        : { available: false },
+      wearable: latestProgress && (latestProgress.steps > 0 || latestProgress.caloriesBurned > 0)
+        ? {
+            available: true,
+            steps: latestProgress.steps,
+            caloriesBurned: latestProgress.caloriesBurned,
+            date: latestProgress.date,
+          }
+        : { available: false },
     });
-
-    const dietPlan = await DietPlan.create({
-      user: user._id,
-      weekStartDate: new Date(),
-      plan: planDays,
-      isActive: true
-    });
-
-    res.status(201).json(dietPlan);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @route GET /api/diet-plans/active
+// ─────────────────────────────────────────────────────────────────────────────
+// @route  POST /api/diet-plans/generate
+// Main generation endpoint: merges all data sources, calls Gemini, saves to DB
+// ─────────────────────────────────────────────────────────────────────────────
+const generateDietPlan = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // 1. Deactivate all previously active plans for this user
+    await DietPlan.updateMany({ user: user._id, isActive: true }, { isActive: false });
+
+    // 2. Auto-calculate TDEE and persist it back to the User document
+    const calculatedCalorieTarget = computeTDEE(user);
+    user.dailyCalorieTarget = calculatedCalorieTarget;
+    await user.save();
+
+    // 3. Fetch and merge all medical reports (optional data source)
+    const allReports = await MedicalReport.find({ user: user._id }).sort({ createdAt: -1 });
+    const reportData = mergeMedicalReports(allReports); // null if none exist
+
+    // 4. Fetch most recent wearable/progress log (optional data source)
+    const latestProgress = await Progress.findOne({ user: user._id }).sort({ date: -1 });
+    const wearableData =
+      latestProgress && (latestProgress.steps > 0 || latestProgress.caloriesBurned > 0)
+        ? {
+            steps: latestProgress.steps,
+            caloriesBurned: latestProgress.caloriesBurned,
+            date: latestProgress.date,
+          }
+        : null; // null means wearable section is skipped in the prompt
+
+    // 5. Build the multi-source prompt
+    const prompt = buildDietPlanPrompt({
+      user,
+      reportData,
+      wearableData,
+      goalText: getGoalText(user.goal),
+    });
+
+    // 6. Call Gemini API and parse the JSON response
+    const rawResponse = await generateText(prompt);
+    const cleanJsonStr = rawResponse.replace(/```json|```/g, '').trim();
+    const parsedPlan = JSON.parse(cleanJsonStr);
+
+    // 7. Compute totalCalories per day
+    const planDays = parsedPlan.map((dayData) => {
+      const totalCalories = dayData.meals.reduce((sum, m) => sum + (m.calories || 0), 0);
+      return {
+        day: dayData.day,
+        meals: dayData.meals,
+        totalCalories,
+      };
+    });
+
+    // 8. Persist the new active diet plan to MongoDB
+    const dietPlan = await DietPlan.create({
+      user: user._id,
+      weekStartDate: new Date(),
+      plan: planDays,
+      isActive: true,
+    });
+
+    res.status(201).json(dietPlan);
+  } catch (error) {
+    console.error('Diet plan generation error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @route  GET /api/diet-plans/active
+// Returns the current user's active diet plan
+// ─────────────────────────────────────────────────────────────────────────────
 const getActivePlan = async (req, res) => {
   try {
     const plan = await DietPlan.findOne({ user: req.user.id, isActive: true });
@@ -142,7 +323,10 @@ const getActivePlan = async (req, res) => {
   }
 };
 
-// @route GET /api/diet-plans/:id/recipe
+// ─────────────────────────────────────────────────────────────────────────────
+// @route  GET /api/diet-plans/:id/recipe
+// Generates or fetches cached recipe + trivia for a specific meal
+// ─────────────────────────────────────────────────────────────────────────────
 const generateRecipe = async (req, res) => {
   try {
     const { id } = req.params;
@@ -162,11 +346,12 @@ const generateRecipe = async (req, res) => {
       return res.status(404).json({ message: 'Meal not found in active diet plan' });
     }
 
+    // Return cached recipe if already generated
     if (targetMeal.recipe) {
       try {
         const parsed = JSON.parse(targetMeal.recipe);
         return res.json({ mealName: targetMeal.name, ...parsed });
-      } catch (e) {}
+      } catch (e) { /* fall through to regenerate */ }
     }
 
     const prompt = `
@@ -203,6 +388,10 @@ Return ONLY valid raw JSON. Do not include markdown code block characters like \
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// @route  POST /api/diet-plans/generate-direct
+// Generates a recipe directly by food name (used by Recipe Generator page)
+// ─────────────────────────────────────────────────────────────────────────────
 const generateRecipeDirectly = async (req, res) => {
   try {
     const { name, meal = 'Lunch', calories = 500 } = req.body;
@@ -235,10 +424,15 @@ Return ONLY valid raw JSON. Do not include markdown code block characters like \
 
     res.json({ mealName: name, calories, ...parsedData });
   } catch (error) {
-    console.error("Gemini API Error in generateRecipeDirectly:", error);
+    console.error('Gemini API Error in generateRecipeDirectly:', error);
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { generateDietPlan, getActivePlan, generateRecipe, generateRecipeDirectly };
-
+module.exports = {
+  generateDietPlan,
+  getActivePlan,
+  generateRecipe,
+  generateRecipeDirectly,
+  getGenerationContext,
+};

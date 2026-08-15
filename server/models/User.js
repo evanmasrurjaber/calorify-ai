@@ -17,9 +17,20 @@ const userSchema = new mongoose.Schema(
       enum: ['lose_weight', 'maintain', 'gain_muscle'],
       default: 'maintain',
     },
+    gender: {
+      type: String,
+      enum: ['male', 'female', 'prefer_not_to_say'],
+      default: 'prefer_not_to_say',
+    },
+    activityLevel: {
+      type: String,
+      enum: ['sedentary', 'lightly_active', 'moderately_active', 'very_active'],
+      default: 'sedentary',
+    },
     medicalConditions: [{ type: String }],
     allergies: [{ type: String }],
     dailyCalorieTarget: { type: Number, default: 2000 },
+
 
     // Subscription
     isPro: { type: Boolean, default: false },

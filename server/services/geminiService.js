@@ -3,7 +3,7 @@
 
 const axios = require('axios');
 
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`;
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent`;
 
 /**
  * Send a text prompt to Gemini and return the parsed text response

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getActiveDietPlan, generateDietPlan, generateRecipe } from '../../services/dietPlanService';
+import { getActiveDietPlan, generateDietPlan, generateRecipe, getGenerationContext } from '../../services/dietPlanService';
 import { addBookmark } from '../../services/bookmarkService';
 
 export default function DietPlan() {
@@ -11,10 +11,18 @@ export default function DietPlan() {
   const [recipeData, setRecipeData] = useState(null);
   const [recipeError, setRecipeError] = useState('');
 
+  // Bookmark state — declared here (above all handlers that reference it)
+  const [bookmarking, setBookmarking] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
+
+  // Data Sources Panel state
+  const [genContext, setGenContext] = useState(null);
+  const [contextLoading, setContextLoading] = useState(true);
+
   const fetchPlan = async () => {
     try {
       setLoading(true);
-      const { data } = await getActivePlan();
+      const { data } = await getActiveDietPlan();
       setActivePlan(data);
     } catch (err) {
       console.error(err);
@@ -24,8 +32,22 @@ export default function DietPlan() {
     }
   };
 
+  const fetchContext = async () => {
+    try {
+      setContextLoading(true);
+      const { data } = await getGenerationContext();
+      setGenContext(data);
+    } catch (err) {
+      console.error('Could not load generation context:', err);
+      setGenContext(null);
+    } finally {
+      setContextLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchPlan();
+    fetchContext();
   }, []);
 
   const handleGeneratePlan = async () => {
@@ -45,7 +67,7 @@ export default function DietPlan() {
     setSelectedMeal(meal);
     setRecipeData(null);
     setRecipeError('');
-    setBookmarked(false);
+    setBookmarked(false); // Now safe — useState is declared above
     // Check if recipe is already cached/generated in the meal subdocument
     if (meal.recipe) {
       try {
@@ -71,21 +93,17 @@ export default function DietPlan() {
     }
   };
 
-  const [bookmarking, setBookmarking] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
-
   const handleBookmark = async () => {
     if (!recipeData) return;
     setBookmarking(true);
     try {
-      // Include calories, macro values and names in the bookmarked object
       const recipeToSave = {
         mealName: selectedMeal.name,
         calories: selectedMeal.calories,
         carbs: selectedMeal.carbs,
         protein: selectedMeal.protein,
         fat: selectedMeal.fat,
-        ...recipeData
+        ...recipeData,
       };
       await addBookmark(recipeToSave);
       setBookmarked(true);
@@ -97,6 +115,35 @@ export default function DietPlan() {
       setBookmarking(false);
     }
   };
+
+  // ─── Helpers ────────────────────────────────────────────────────────────────
+
+  /** Render a single Data Source tile for the pre-generation panel */
+  const DataSourceTile = ({ icon, label, available, lines = [] }) => (
+    <div
+      className={`flex flex-col gap-2 p-4 rounded-2xl border transition ${
+        available
+          ? 'bg-emerald-500/5 border-emerald-500/20'
+          : 'bg-gray-950/60 border-gray-800/50'
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <span className="text-xl">{icon}</span>
+        <span className={`text-xs font-bold uppercase tracking-wider ${available ? 'text-emerald-400' : 'text-gray-500'}`}>
+          {available ? '✓' : '○'} {label}
+        </span>
+      </div>
+      {available ? (
+        <ul className="space-y-0.5">
+          {lines.map((l, i) => (
+            <li key={i} className="text-xs text-gray-300 leading-relaxed">{l}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-gray-600 italic">Not available — will be skipped</p>
+      )}
+    </div>
+  );
 
   if (loading) {
     return (
@@ -125,19 +172,99 @@ export default function DietPlan() {
       </div>
 
       {!activePlan ? (
-        <div className="bg-gray-900/60 backdrop-blur-xl border border-gray-800 rounded-3xl p-12 text-center shadow-xl">
-          <div className="text-5xl mb-4">📅</div>
-          <h3 className="text-2xl font-bold text-white mb-2">No Active Diet Plan</h3>
-          <p className="text-gray-400 max-w-md mx-auto mb-6">
-            Generate a personalized 7-day Bangladeshi meal schedule powered by Gemini AI, custom to your age, weight, and health targets.
-          </p>
-          <button
-            onClick={handleGeneratePlan}
-            disabled={generatingPlan}
-            className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-semibold px-8 py-4 rounded-2xl transition shadow-lg shadow-purple-500/20 active:scale-95"
-          >
-            {generatingPlan ? 'Generating with Gemini...' : 'Generate My 7-Day Plan 🚀'}
-          </button>
+        /* ── No Plan: show Data Sources Panel + Generate CTA ── */
+        <div className="space-y-6">
+          {/* Data Sources Panel */}
+          <div className="bg-gray-900/60 backdrop-blur-xl border border-gray-800 rounded-3xl p-6 shadow-xl">
+            <div className="mb-5">
+              <h3 className="text-lg font-bold text-white">Your Plan Will Be Generated Using:</h3>
+              <p className="text-gray-400 text-sm mt-1">
+                The AI uses all available data sources below to create the most personalized diet plan possible.
+                Missing sources are automatically skipped.
+              </p>
+            </div>
+
+            {contextLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-28 bg-gray-800/50 rounded-2xl animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Source 1: Health Profile */}
+                <DataSourceTile
+                  icon="📋"
+                  label="Health Profile"
+                  available={genContext?.profile?.isComplete}
+                  lines={genContext?.profile ? [
+                    `Goal: ${genContext.profile.goalLabel}`,
+                    `Age: ${genContext.profile.age ?? '?'} · Weight: ${genContext.profile.weight ?? '?'} kg`,
+                    `Activity: ${genContext.profile.activityLabel}`,
+                    `Calorie Target: ${genContext.profile.calculatedTarget} kcal/day`,
+                  ] : []}
+                />
+
+                {/* Source 2: Medical Report */}
+                <DataSourceTile
+                  icon="🩺"
+                  label="Medical Reports"
+                  available={genContext?.medicalReport?.available}
+                  lines={genContext?.medicalReport?.available ? [
+                    genContext.medicalReport.diagnoses?.length
+                      ? `Diagnoses: ${genContext.medicalReport.diagnoses.slice(0, 2).join(', ')}`
+                      : 'No diagnoses on record',
+                    genContext.medicalReport.hba1c
+                      ? `HbA1c: ${genContext.medicalReport.hba1c}%`
+                      : 'HbA1c: Not recorded',
+                    genContext.medicalReport.allergies?.length
+                      ? `Allergies: ${genContext.medicalReport.allergies.slice(0, 2).join(', ')}`
+                      : 'No medical allergies on record',
+                  ] : []}
+                />
+
+                {/* Source 3: Wearable / Activity Data */}
+                <DataSourceTile
+                  icon="⌚"
+                  label="Wearable / Activity Data"
+                  available={genContext?.wearable?.available}
+                  lines={genContext?.wearable?.available ? [
+                    `Steps: ${genContext.wearable.steps?.toLocaleString() ?? '—'}`,
+                    `Calories Burned: ${genContext.wearable.caloriesBurned ?? '—'} kcal`,
+                    `Recorded: ${genContext.wearable.date ? new Date(genContext.wearable.date).toLocaleDateString() : '—'}`,
+                  ] : []}
+                />
+              </div>
+            )}
+
+            {/* Profile incomplete warning */}
+            {genContext && !genContext.profile?.isComplete && (
+              <div className="mt-4 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm p-4 rounded-xl flex items-start gap-2">
+                <span>⚠️</span>
+                <span>
+                  Your health profile is incomplete. Please fill in your age, weight, height, and fitness goal in{' '}
+                  <a href="/profile" className="underline font-semibold hover:text-amber-200 transition">Profile Settings</a>{' '}
+                  before generating for the best results.
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Generate CTA */}
+          <div className="bg-gray-900/60 backdrop-blur-xl border border-gray-800 rounded-3xl p-12 text-center shadow-xl">
+            <div className="text-5xl mb-4">📅</div>
+            <h3 className="text-2xl font-bold text-white mb-2">Ready to Generate Your Plan</h3>
+            <p className="text-gray-400 max-w-md mx-auto mb-6">
+              A personalized 7-day Bangladeshi meal schedule powered by Gemini AI — built from your health data above.
+            </p>
+            <button
+              onClick={handleGeneratePlan}
+              disabled={generatingPlan}
+              className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-semibold px-8 py-4 rounded-2xl transition shadow-lg shadow-purple-500/20 active:scale-95"
+            >
+              {generatingPlan ? 'Generating with Gemini AI...' : 'Generate My 7-Day Plan 🚀'}
+            </button>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
@@ -177,7 +304,7 @@ export default function DietPlan() {
         </div>
       )}
 
-      {/* Modal for Meal Details / Recipe Generator */}
+      {/* ── Meal Detail / Recipe Modal ── */}
       {selectedMeal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-gray-900 border border-gray-800 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
@@ -289,7 +416,7 @@ export default function DietPlan() {
                     </ol>
                   </div>
 
-                  {/* Trivia (Bangladeshi context) */}
+                  {/* Trivia */}
                   <div className="bg-purple-950/20 border border-purple-500/20 p-5 rounded-2xl">
                     <h4 className="text-sm font-bold text-purple-300 mb-3 uppercase tracking-wider flex items-center gap-2">
                       <span className="text-purple-400">🇧🇩</span> Local Health Trivia & Facts
@@ -312,4 +439,3 @@ export default function DietPlan() {
     </div>
   );
 }
-
