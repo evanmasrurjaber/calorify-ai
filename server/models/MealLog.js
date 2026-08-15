@@ -12,6 +12,14 @@ const mealLogSchema = new mongoose.Schema(
     fat: { type: Number },
     loggedVia: { type: String, enum: ['text', 'image', 'wearable'], default: 'text' },
     imageUrl: { type: String }, // if logged via photo
+    confidence: { type: String, enum: ['high', 'medium', 'low'] },
+    breakdown: [
+      {
+        item:            { type: String },
+        calories:        { type: Number },
+        portionEstimate: { type: String },
+      },
+    ],
   },
   { timestamps: true }
 );
