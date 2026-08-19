@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getBookmarks, removeBookmark, addBookmark } from '../../services/bookmarkService';
 import { generateRecipeDirectly } from '../../services/dietPlanService';
+import { Info, Heart, Flame, Utensils } from 'lucide-react';
 
 const getDishImage = (name, recipe) => {
   if (recipe?.image_url) return recipe.image_url;
@@ -231,45 +232,46 @@ export default function Bookmarks() {
                     <div
                       key={index}
                       onClick={() => setSelectedRecipe(recipe)}
-                      className={`group border rounded-3xl p-4 flex flex-col cursor-pointer transition relative w-full ${
+                      className={`group border rounded-3xl p-4 flex flex-col cursor-pointer transition-all duration-300 relative w-full ${
                         isSelected
-                          ? 'border-green-500/50 bg-green-50/30 shadow-md'
-                          : 'border-gray-200 bg-white hover:border-green-300 shadow-sm'
+                          ? 'border-orange-400 bg-gradient-to-r from-orange-50 to-amber-50 shadow-md transform scale-[1.02]'
+                          : 'border-gray-200 bg-white hover:border-orange-300 shadow-sm hover:shadow-md'
                       }`}
                     >
                       {/* Top Badges */}
                       <div className="flex justify-between items-center mb-4">
-                        <span className="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-full">
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${isSelected ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'}`}>
                           {recipe.mealType || 'Lunch'}
                         </span>
                         <button
                           onClick={(e) => handleRemoveBookmark(e, index)}
-                          className="text-red-500 hover:text-red-600 transition"
+                          className="text-rose-400 hover:text-rose-600 transition hover:scale-110"
                           title="Remove Bookmark"
                         >
-                          ❤
+                          <Heart size={18} className="fill-rose-500" />
                         </button>
                       </div>
                       
                       {/* Dish Thumbnail */}
-                      <div className="w-full h-28 rounded-xl overflow-hidden mb-4 shadow-sm border border-gray-100">
+                      <div className="w-full h-28 rounded-xl overflow-hidden mb-4 shadow-sm border border-gray-100 relative">
                          <img
                           src={recipe.image_url || getDishImage(recipe.mealName || recipe.name, recipe)}
                           alt={recipe.mealName || recipe.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                          className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
                           loading="lazy"
                         />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                       </div>
                       
                       {/* Dish Details */}
                       <div>
                         <div className="flex items-center gap-3 mb-1">
-                           <span className="text-[10px] text-gray-500 font-bold flex items-center gap-1">🍽 {recipe.servings || 2} Servings</span>
-                           <span className="text-[10px] font-extrabold text-red-500 flex items-center gap-1">
-                             🔥 {recipe.calories_per_serving ? Math.round(Number(recipe.calories_per_serving) * (recipe.servings || 2)) : (recipe.calories || 500)} kcal
+                           <span className="text-[10px] text-gray-500 font-bold flex items-center gap-1"><Utensils size={10} /> {recipe.servings || 2} Servings</span>
+                           <span className="text-[10px] font-extrabold text-orange-500 flex items-center gap-1">
+                             <Flame size={12} /> {recipe.calories_per_serving ? Math.round(Number(recipe.calories_per_serving) * (recipe.servings || 2)) : (recipe.calories || 500)} kcal
                            </span>
                         </div>
-                        <h4 className="text-sm font-bold text-gray-900 line-clamp-1 group-hover:text-emerald-700 transition">
+                        <h4 className={`text-sm font-bold line-clamp-1 transition ${isSelected ? 'text-orange-700' : 'text-gray-900 group-hover:text-orange-600'}`}>
                           {recipe.mealName || recipe.name}
                         </h4>
                       </div>
@@ -431,6 +433,23 @@ export default function Bookmarks() {
                     ))}
                   </div>
                 </div>
+
+                {/* Local Health Trivia & Facts */}
+                {selectedRecipe.trivia && selectedRecipe.trivia.length > 0 && (
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-orange-100 p-6 rounded-3xl shadow-sm mt-8">
+                    <h3 className="text-sm font-extrabold text-orange-800 mb-4 uppercase tracking-wider flex items-center gap-2">
+                      <span className="text-amber-500"><Info size={20} /></span> Local Health Trivia & Facts
+                    </h3>
+                    <ul className="space-y-3">
+                      {selectedRecipe.trivia.map((fact, idx) => (
+                        <li key={idx} className="text-sm text-orange-900/80 leading-relaxed flex items-start gap-2 font-medium">
+                          <span className="text-orange-400 mt-0.5">💡</span>
+                          <span>{fact}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
               </div>
             );

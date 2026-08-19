@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getActiveDietPlan, generateDietPlan, generateRecipe, getGenerationContext } from '../../services/dietPlanService';
-import { addBookmark } from '../../services/bookmarkService';
+import { addBookmark, getBookmarks } from '../../services/bookmarkService';
+import { Heart, Flame, Utensils, Info } from 'lucide-react';
 
 export default function DietPlan() {
   const [activePlan, setActivePlan] = useState(null);
@@ -63,18 +64,31 @@ export default function DietPlan() {
     }
   };
 
-  const handleMealClick = (meal) => {
+  const handleMealClick = async (meal) => {
     setSelectedMeal(meal);
     setRecipeData(null);
     setRecipeError('');
-    setBookmarked(false); // Now safe — useState is declared above
+    setBookmarked(false);
+    
     // Check if recipe is already cached/generated in the meal subdocument
+    let currentRecipeData = null;
     if (meal.recipe) {
       try {
-        setRecipeData(JSON.parse(meal.recipe));
+        currentRecipeData = JSON.parse(meal.recipe);
+        setRecipeData(currentRecipeData);
       } catch (e) {
         setRecipeData(null);
       }
+    }
+
+    // Check if this meal is already bookmarked
+    try {
+      const res = await getBookmarks();
+      const bookmarks = res.data || [];
+      const isBookmarked = bookmarks.some(b => b.mealName === meal.name);
+      setBookmarked(isBookmarked);
+    } catch (e) {
+      console.error("Failed to fetch bookmarks:", e);
     }
   };
 
@@ -107,7 +121,7 @@ export default function DietPlan() {
       };
       await addBookmark(recipeToSave);
       setBookmarked(true);
-      alert('Recipe bookmarked successfully! You can view it in the Recipe Library.');
+      // alert('Recipe bookmarked successfully! You can view it in the Recipe Library.');
     } catch (err) {
       console.error(err);
       alert('Failed to bookmark recipe.');
@@ -306,34 +320,34 @@ export default function DietPlan() {
 
       {/* ── Meal Detail / Recipe Modal ── */}
       {selectedMeal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-gray-900 border border-gray-800 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md">
+          <div className="bg-white border border-emerald-300 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
             {/* Header */}
-            <div className="p-6 border-b border-gray-800 flex justify-between items-start">
+            <div className="p-6 bg-gradient-to-r from-emerald-100 to-emerald-200 border-b border-emerald-300 flex justify-between items-start">
               <div>
-                <span className="text-xs uppercase font-extrabold text-purple-400 tracking-wider">
+                <span className="text-xs uppercase font-extrabold text-emerald-700 tracking-wider">
                   {selectedMeal.meal} Recipe Generator
                 </span>
-                <h3 className="text-2xl font-black text-white mt-1">{selectedMeal.name}</h3>
+                <h3 className="text-2xl font-black text-gray-900 mt-1">{selectedMeal.name}</h3>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 {recipeData && (
                   <button
                     onClick={handleBookmark}
                     disabled={bookmarking || bookmarked}
-                    className={`p-2 rounded-full border transition flex items-center justify-center ${
+                    className={`p-3 rounded-full border shadow-sm transition flex items-center justify-center ${
                       bookmarked
-                        ? 'bg-rose-500/20 text-rose-500 border-rose-500/40'
-                        : 'bg-gray-950/50 text-gray-400 hover:text-rose-400 border-gray-800 hover:border-rose-500/30'
+                        ? 'bg-rose-100 text-rose-500 border-rose-300 scale-110'
+                        : 'bg-white text-gray-400 hover:text-rose-500 border-gray-200 hover:border-rose-300 hover:scale-105 hover:bg-rose-50'
                     }`}
                     title={bookmarked ? 'Recipe Bookmarked!' : 'Bookmark Recipe'}
                   >
-                    ❤️
+                    <Heart size={24} className={bookmarked ? 'fill-rose-500' : ''} />
                   </button>
                 )}
                 <button
                   onClick={() => setSelectedMeal(null)}
-                  className="text-gray-400 hover:text-white bg-gray-950/50 p-2 rounded-full border border-gray-800 transition"
+                  className="text-gray-500 hover:text-gray-800 bg-white p-2 rounded-full border border-gray-300 shadow-sm transition hover:bg-gray-100"
                 >
                   ✕
                 </button>
@@ -341,36 +355,37 @@ export default function DietPlan() {
             </div>
 
             {/* Content Body */}
-            <div className="p-6 overflow-y-auto space-y-6 flex-1">
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-gray-50/50">
               {/* Macro info */}
-              <div className="grid grid-cols-4 gap-2 text-center bg-gray-950 p-4 rounded-2xl border border-gray-800/60">
+              <div className="grid grid-cols-4 gap-2 text-center bg-white p-4 rounded-2xl border border-orange-100 shadow-sm">
                 <div>
                   <span className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Calories</span>
-                  <span className="text-base font-bold text-white">{selectedMeal.calories} kcal</span>
+                  <span className="text-base font-bold text-orange-500">{selectedMeal.calories} kcal</span>
                 </div>
                 <div>
                   <span className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Carbs</span>
-                  <span className="text-base font-bold text-purple-400">{selectedMeal.carbs}g</span>
+                  <span className="text-base font-bold text-emerald-500">{selectedMeal.carbs}g</span>
                 </div>
                 <div>
                   <span className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Protein</span>
-                  <span className="text-base font-bold text-purple-400">{selectedMeal.protein}g</span>
+                  <span className="text-base font-bold text-rose-500">{selectedMeal.protein}g</span>
                 </div>
                 <div>
                   <span className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Fat</span>
-                  <span className="text-base font-bold text-purple-400">{selectedMeal.fat}g</span>
+                  <span className="text-base font-bold text-amber-500">{selectedMeal.fat}g</span>
                 </div>
               </div>
 
               {/* Recipe Generation Block */}
               {!recipeData && !recipeLoading && (
-                <div className="text-center py-6">
-                  <p className="text-gray-400 text-sm mb-4">
+                <div className="text-center py-8">
+                  <Flame size={48} className="mx-auto text-orange-400 mb-4 animate-bounce" />
+                  <p className="text-gray-600 font-medium mb-6">
                     Generate the cooking recipe & nutritional trivia for this meal using Gemini AI.
                   </p>
                   <button
                     onClick={handleGenerateRecipe}
-                    className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-6 py-3 rounded-2xl transition shadow-lg shadow-purple-500/25 active:scale-95"
+                    className="bg-gradient-to-r from-orange-400 to-rose-400 hover:from-orange-500 hover:to-rose-500 text-white font-bold px-8 py-4 rounded-full transition shadow-lg shadow-orange-500/30 transform hover:-translate-y-1"
                   >
                     Generate AI Recipe & Trivia 🪄
                   </button>
@@ -379,13 +394,13 @@ export default function DietPlan() {
 
               {recipeLoading && (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500 mb-4"></div>
-                  <p className="text-gray-400 text-sm">Consulting Gemini AI for recipe and nutritional trivia...</p>
+                  <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-b-4 border-orange-500 mb-4"></div>
+                  <p className="text-gray-600 font-medium">Consulting Gemini AI for recipe and nutritional trivia...</p>
                 </div>
               )}
 
               {recipeError && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm text-center">
+                <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-xl text-sm text-center font-medium shadow-inner">
                   {recipeError}
                 </div>
               )}
@@ -393,38 +408,41 @@ export default function DietPlan() {
               {recipeData && (
                 <div className="space-y-6">
                   {/* Ingredients */}
-                  <div>
-                    <h4 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                      <span className="text-purple-400">🥗</span> Ingredients List
+                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <h4 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                      <span className="text-emerald-500"><Utensils size={20} /></span> Ingredients List
                     </h4>
-                    <ul className="list-disc list-inside text-sm text-gray-300 space-y-1.5 pl-2">
+                    <ul className="list-none text-sm text-gray-600 space-y-2 pl-2">
                       {recipeData.ingredients?.map((ing, idx) => (
-                        <li key={idx}>{ing}</li>
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-emerald-400 mt-0.5">•</span>
+                          <span>{ing}</span>
+                        </li>
                       ))}
                     </ul>
                   </div>
 
                   {/* Instructions */}
-                  <div>
-                    <h4 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                      <span className="text-purple-400">🍳</span> Cooking Steps
+                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                    <h4 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                      <span className="text-orange-500"><Flame size={20} /></span> Cooking Steps
                     </h4>
-                    <ol className="list-decimal list-inside text-sm text-gray-300 space-y-2.5 pl-2">
+                    <ol className="list-decimal list-outside ml-5 text-sm text-gray-600 space-y-3 font-medium">
                       {recipeData.instructions?.map((step, idx) => (
-                        <li key={idx} className="leading-relaxed">{step}</li>
+                        <li key={idx} className="leading-relaxed pl-1">{step}</li>
                       ))}
                     </ol>
                   </div>
 
                   {/* Trivia */}
-                  <div className="bg-purple-950/20 border border-purple-500/20 p-5 rounded-2xl">
-                    <h4 className="text-sm font-bold text-purple-300 mb-3 uppercase tracking-wider flex items-center gap-2">
-                      <span className="text-purple-400">🇧🇩</span> Local Health Trivia & Facts
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-orange-100 p-5 rounded-2xl shadow-sm">
+                    <h4 className="text-sm font-bold text-orange-800 mb-3 uppercase tracking-wider flex items-center gap-2">
+                      <span className="text-amber-500"><Info size={18} /></span> Local Health Trivia & Facts
                     </h4>
-                    <ul className="space-y-2.5">
+                    <ul className="space-y-3">
                       {recipeData.trivia?.map((fact, idx) => (
-                        <li key={idx} className="text-xs text-purple-200/90 leading-relaxed flex items-start gap-2">
-                          <span>💡</span>
+                        <li key={idx} className="text-sm text-orange-900/80 leading-relaxed flex items-start gap-2 font-medium">
+                          <span className="text-orange-400 mt-0.5">💡</span>
                           <span>{fact}</span>
                         </li>
                       ))}

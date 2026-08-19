@@ -9,6 +9,7 @@ const progressSchema = new mongoose.Schema(
     streak: { type: Number, default: 0 }, // consecutive adherence days
     steps: { type: Number, default: 0 },
     caloriesBurned: { type: Number, default: 0 },
+    caloriesConsumed: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
