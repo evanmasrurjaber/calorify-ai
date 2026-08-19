@@ -2,11 +2,22 @@ const DietPlan = require('../models/DietPlan');
 const User = require('../models/User');
 const MedicalReport = require('../models/MedicalReport');
 const Progress = require('../models/Progress');
+const DishImage = require('../models/DishImage');
 const { generateText } = require('../services/geminiService');
 
 // ─── Helper: Generate a Pollinations AI food image URL ───────────────────────
-function generateDishImageURL(dishName) {
+async function generateDishImageURL(dishName) {
   if (!dishName) return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800';
+
+  try {
+    const dish = await DishImage.findOne({ name: { $regex: new RegExp(`^${dishName}$`, 'i') } });
+    if (dish && dish.imageUrl) {
+      return dish.imageUrl;
+    }
+  } catch (error) {
+    console.error('Error fetching dish image from DB:', error);
+  }
+
   const finalPrompt = `Professional close-up food photography of authentic Bangladeshi ${dishName}, showing the main ingredients clearly, 4k, photorealistic, highly detailed, appetizing`;
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?width=800&height=800&nologo=true&model=flux`;
 }
@@ -25,16 +36,16 @@ function computeTDEE(user) {
 
   const weight = user.weight || 70;  // kg
   const height = user.height || 170; // cm
-  const age    = user.age    || 25;  // years
+  const age = user.age || 25;  // years
 
   // Gender constant: male = +5, female = -161, prefer_not_to_say = average (-78)
   const genderConstant =
-    user.gender === 'male'   ? 5  :
-    user.gender === 'female' ? -161 : -78;
+    user.gender === 'male' ? 5 :
+      user.gender === 'female' ? -161 : -78;
 
-  const bmr        = 10 * weight + 6.25 * height - 5 * age + genderConstant;
+  const bmr = 10 * weight + 6.25 * height - 5 * age + genderConstant;
   const multiplier = activityMultipliers[user.activityLevel] || 1.2;
-  let tdee         = Math.round(bmr * multiplier);
+  let tdee = Math.round(bmr * multiplier);
 
   if (user.goal === 'lose_weight') tdee = Math.round(tdee * 0.85);
   if (user.goal === 'gain_muscle') tdee = Math.round(tdee * 1.10);
@@ -227,11 +238,11 @@ const getGenerationContext = async (req, res) => {
         : { available: false },
       wearable: latestProgress && (latestProgress.steps > 0 || latestProgress.caloriesBurned > 0)
         ? {
-            available: true,
-            steps: latestProgress.steps,
-            caloriesBurned: latestProgress.caloriesBurned,
-            date: latestProgress.date,
-          }
+          available: true,
+          steps: latestProgress.steps,
+          caloriesBurned: latestProgress.caloriesBurned,
+          date: latestProgress.date,
+        }
         : { available: false },
     });
   } catch (error) {
@@ -265,10 +276,10 @@ const generateDietPlan = async (req, res) => {
     const wearableData =
       latestProgress && (latestProgress.steps > 0 || latestProgress.caloriesBurned > 0)
         ? {
-            steps: latestProgress.steps,
-            caloriesBurned: latestProgress.caloriesBurned,
-            date: latestProgress.date,
-          }
+          steps: latestProgress.steps,
+          caloriesBurned: latestProgress.caloriesBurned,
+          date: latestProgress.date,
+        }
         : null; // null means wearable section is skipped in the prompt
 
     // 5. Build the multi-source prompt
@@ -377,7 +388,7 @@ Return ONLY valid raw JSON. Do not include markdown code block characters like \
     const cleanJsonStr = rawResponse.replace(/```json|```/g, '').trim();
     const parsedData = JSON.parse(cleanJsonStr);
 
-    parsedData.image_url = generateDishImageURL(targetMeal.name);
+    parsedData.image_url = await generateDishImageURL(targetMeal.name);
 
     targetMeal.recipe = JSON.stringify(parsedData);
     await plan.save();
@@ -420,7 +431,7 @@ Return ONLY valid raw JSON. Do not include markdown code block characters like \
     const cleanJsonStr = rawResponse.replace(/```json|```/g, '').trim();
     const parsedData = JSON.parse(cleanJsonStr);
 
-    parsedData.image_url = generateDishImageURL(name);
+    parsedData.image_url = await generateDishImageURL(name);
 
     res.json({ mealName: name, calories, ...parsedData });
   } catch (error) {
