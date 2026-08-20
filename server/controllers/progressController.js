@@ -1,6 +1,3 @@
-// TODO: Implement progress tracking (weight + streaks)
-// Member responsibility: Jarin Tasnim Dia
-
 const Progress = require('../models/Progress');
 const MealLog = require('../models/MealLog');
 
@@ -8,7 +5,7 @@ const MealLog = require('../models/MealLog');
 const logProgress = async (req, res) => {
   try {
     const { weight, adherence } = req.body;
-    
+
     // Get start and end of today
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
