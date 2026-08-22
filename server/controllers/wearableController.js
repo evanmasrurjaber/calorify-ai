@@ -26,7 +26,7 @@ const syncUserFitnessData = async (userId, accessToken, refreshToken) => {
   await Progress.findOneAndUpdate(
     { user: userId, date: { $gte: startOfToday, $lte: endOfToday } },
     { $set: { steps: data.steps, caloriesBurned: data.caloriesBurned } },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: 'after' }
   );
 
   // Record the sync timestamp on the User document

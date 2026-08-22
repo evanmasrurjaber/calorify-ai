@@ -76,19 +76,24 @@ const getFreshAccessToken = async (accessToken, refreshToken) => {
 
 /**
  * Helper to build the CivilTimeInterval range for today.
+ * Google Health API v4 schema expects start.date and end.date objects.
  */
 const getTodayCivilTimeRange = () => {
   const now = new Date();
   const start = {
-    year: now.getFullYear(),
-    month: now.getMonth() + 1,
-    day: now.getDate(),
+    date: {
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      day: now.getDate(),
+    },
   };
   const tomorrow = new Date(now.getTime() + 86400000);
   const end = {
-    year: tomorrow.getFullYear(),
-    month: tomorrow.getMonth() + 1,
-    day: tomorrow.getDate(),
+    date: {
+      year: tomorrow.getFullYear(),
+      month: tomorrow.getMonth() + 1,
+      day: tomorrow.getDate(),
+    },
   };
   return { start, end };
 };
