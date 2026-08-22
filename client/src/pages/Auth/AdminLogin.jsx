@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { loginUser } from '../../services/authService';
 
-export default function Login() {
+export default function AdminLogin() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -18,12 +18,16 @@ export default function Login() {
 
     try {
       const { data } = await loginUser({ email, password });
-      login(data.user, data.token);
-      if (data.user.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/dashboard');
+      
+      // Ensure only admins can log in here
+      if (data.user.role !== 'admin') {
+        setError('Unauthorized: Admin access required.');
+        setLoading(false);
+        return;
       }
+
+      login(data.user, data.token);
+      navigate('/admin');
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || 'Invalid email or password.');
@@ -39,27 +43,27 @@ export default function Login() {
 
         <div className="text-center mb-8">
           <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight flex justify-center items-center gap-2 mb-2">
-            <span className="text-emerald-500 font-black bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20 text-2xl">C</span>
-            Calorify<span className="text-emerald-500">.ai</span>
+            <span className="text-emerald-500 font-black bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20 text-2xl">A</span>
+            Admin<span className="text-emerald-500">Portal</span>
           </h1>
-          <p className="text-gray-500 text-sm font-medium">Sign in to your personalized diet manager</p>
+          <p className="text-gray-500 text-sm font-medium">Sign in to manage the Calorify platform</p>
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl mb-6 text-sm text-center font-medium">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl mb-6 text-sm text-center font-medium">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Email Address</label>
+            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Admin Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="you@example.com"
+              placeholder="admin@calorify.ai"
               className="w-full bg-gray-50/50 border-2 border-emerald-100 focus:border-emerald-500 rounded-2xl px-4 py-3.5 text-gray-800 font-medium placeholder-gray-400 focus:outline-none transition-colors"
             />
           </div>
@@ -81,15 +85,15 @@ export default function Login() {
             disabled={loading}
             className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 text-white font-semibold rounded-2xl transition shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 active:scale-[0.98] mt-2"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Authenticating...' : 'Secure Login'}
           </button>
         </form>
 
         <div className="mt-8 text-center border-t border-emerald-100 pt-6">
           <p className="text-gray-500 text-sm font-medium">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-emerald-600 hover:text-emerald-500 font-bold transition">
-              Create an account
+            Return to{' '}
+            <Link to="/login" className="text-emerald-600 hover:text-emerald-500 font-bold transition">
+              User Login
             </Link>
           </p>
         </div>
@@ -97,4 +101,3 @@ export default function Login() {
     </div>
   );
 }
-
