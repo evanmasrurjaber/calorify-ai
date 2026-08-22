@@ -1,12 +1,15 @@
-// TODO: Implement recipe bookmark toggle
-// Member responsibility: Noorani Faiza Khan
-
 const User = require('../models/User');
 
 // @route POST /api/bookmarks
 const addBookmark = async (req, res) => {
   try {
     const { recipe } = req.body; // Full recipe JSON object
+    
+    const user = await User.findById(req.user.id);
+    if (!user.isPro && user.bookmarks.length >= 5) {
+      return res.status(403).json({ message: 'Bookmark limit reached. Upgrade to Pro for unlimited bookmarks.' });
+    }
+
     await User.findByIdAndUpdate(req.user.id, { $push: { bookmarks: recipe } });
     res.status(201).json({ message: 'Recipe bookmarked' });
   } catch (error) {
