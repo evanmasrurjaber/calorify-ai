@@ -1,6 +1,3 @@
-// TODO: Implement recipe bookmark toggle
-// Member responsibility: Noorani Faiza Khan
-
 const User = require('../models/User');
 
 // @route POST /api/bookmarks
