@@ -10,6 +10,7 @@ export default function Sidebar() {
   const menuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: '📋' },
     { name: 'Progress Tracker', path: '/progress', icon: '📈' },
+    { name: 'Wearable Sync', path: '/wearable', icon: '⌚' },
     { name: 'AI Food Scanner', path: '/meal-log', icon: '📸' },
     { name: 'Diet Planner', path: '/diet-plan', icon: '📅' },
     { name: 'Shopping List', path: '/shopping-list', icon: '🛒' },

@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import DietPlan from './pages/DietPlan/DietPlan';
 import MealLog from './pages/MealLog/MealLog';
 import Progress from './pages/Progress/Progress';
+import Wearable from './pages/Wearable/Wearable';
 import Challenges from './pages/Challenges/Challenges';
 import ShoppingList from './pages/ShoppingList/ShoppingList';
 import MedicalReport from './pages/MedicalReport/MedicalReport';
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/diet-plan" element={<ProtectedRoute><Layout><DietPlan /></Layout></ProtectedRoute>} />
           <Route path="/meal-log" element={<ProtectedRoute><Layout><MealLog /></Layout></ProtectedRoute>} />
           <Route path="/progress" element={<ProtectedRoute><Layout><Progress /></Layout></ProtectedRoute>} />
+          <Route path="/wearable" element={<ProtectedRoute><Layout><Wearable /></Layout></ProtectedRoute>} />
           <Route path="/challenges" element={<ProtectedRoute><Layout><Challenges /></Layout></ProtectedRoute>} />
           <Route path="/shopping-list" element={<ProtectedRoute><Layout><ShoppingList /></Layout></ProtectedRoute>} />
           <Route path="/medical-report" element={<ProtectedRoute><Layout><MedicalReport /></Layout></ProtectedRoute>} />

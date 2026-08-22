@@ -1,6 +1,8 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
 // Route imports
@@ -15,8 +17,8 @@ const medicalReportRoutes = require('./routes/medicalReportRoutes');
 const bookmarkRoutes = require('./routes/bookmarkRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const wearableRoutes = require('./routes/wearableRoutes');
 
-dotenv.config();
 connectDB();
 
 const app = express();
@@ -38,6 +40,7 @@ app.use('/api/medical-reports', medicalReportRoutes);
 app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/wearable', wearableRoutes);
 
 // Health check
 app.get('/', (req, res) => {
