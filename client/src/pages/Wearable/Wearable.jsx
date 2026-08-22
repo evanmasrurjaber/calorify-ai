@@ -382,13 +382,15 @@ export default function Wearable() {
           </div>
 
           {/* Device compatibility card */}
-          <div className="bg-gradient-to-br from-gray-900 to-gray-850 text-white rounded-3xl p-6 shadow-sm space-y-3">
-            <h4 className="text-sm font-bold text-white flex items-center gap-2">
-              <Watch size={18} className="text-emerald-400" />
+          <div className="bg-white border border-[#e1e2e8] rounded-3xl p-6 shadow-xs space-y-3">
+            <h4 className="text-sm font-extrabold text-[#0F172A] flex items-center gap-2.5">
+              <span className="p-2 bg-[#10B981]/10 text-[#10B981] rounded-xl">
+                <Watch size={18} />
+              </span>
               Supported Wearable Devices
             </h4>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              Google Pixel Watch, Samsung Galaxy Watch (via Health Connect sync), Fitbit Charge / Sense, Mi Band & any device synced with Google Fit / Health.
+            <p className="text-xs text-[#565e74] leading-relaxed">
+              Google Pixel Watch, Samsung Galaxy Watch (via Health Connect), Fitbit Charge / Sense, Mi Band, Garmin & any fitness tracker synced with Google Health.
             </p>
           </div>
         </div>
@@ -398,7 +400,7 @@ export default function Wearable() {
           {/* Steps & Burned Metric Tiles */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Step Counter Card */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4">
+            <div className="bg-white border border-[#e1e2e8] rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4">
               <div className="flex items-center justify-between">
                 <span className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
                   <Footprints size={24} />
@@ -409,24 +411,24 @@ export default function Wearable() {
               </div>
 
               <div>
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">
+                <p className="text-xs text-[#565e74] font-bold uppercase tracking-wider mb-1">
                   Steps Recorded Today
                 </p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-black text-gray-900">
+                  <span className="text-4xl font-black text-[#0F172A]">
                     {(todayData.steps || 0).toLocaleString()}
                   </span>
-                  <span className="text-xs font-semibold text-gray-400">steps</span>
+                  <span className="text-xs font-semibold text-[#565e74]">steps</span>
                 </div>
               </div>
 
               {/* Step Progress Bar */}
               <div className="space-y-1.5">
-                <div className="flex justify-between text-xs font-medium text-gray-500">
+                <div className="flex justify-between text-xs font-medium text-[#565e74]">
                   <span>{stepPercentage}% of daily goal</span>
                   <span>~{approxDistanceKm} km</span>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                <div className="w-full bg-[#f2f3f9] rounded-full h-3 overflow-hidden">
                   <div
                     className="bg-gradient-to-r from-blue-500 to-teal-400 h-full rounded-full transition-all duration-700"
                     style={{ width: `${stepPercentage}%` }}
@@ -436,7 +438,7 @@ export default function Wearable() {
             </div>
 
             {/* Active Calorie Burn Card */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4">
+            <div className="bg-white border border-[#e1e2e8] rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4">
               <div className="flex items-center justify-between">
                 <span className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
                   <Flame size={24} />
@@ -447,31 +449,31 @@ export default function Wearable() {
               </div>
 
               <div>
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">
+                <p className="text-xs text-[#565e74] font-bold uppercase tracking-wider mb-1">
                   Active Calories Burned
                 </p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-black text-gray-900">
+                  <span className="text-4xl font-black text-[#0F172A]">
                     {todayData.caloriesBurned || 0}
                   </span>
-                  <span className="text-xs font-semibold text-gray-400">kcal</span>
+                  <span className="text-xs font-semibold text-[#565e74]">kcal</span>
                 </div>
               </div>
 
-              <p className="text-xs text-gray-500 leading-relaxed">
+              <p className="text-xs text-[#565e74] leading-relaxed">
                 Ingested from active workouts, walking, and physical movement captured by your wearable.
               </p>
             </div>
           </div>
 
           {/* ── Today's Calorie Balance Card ── */}
-          <div className="bg-white border border-gray-150 rounded-3xl p-6 sm:p-7 shadow-sm space-y-6">
+          <div className="bg-white border border-[#e1e2e8] rounded-3xl p-6 sm:p-7 shadow-xs space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2.5">
+              <h3 className="font-bold text-[#0F172A] text-lg flex items-center gap-2.5">
                 <Zap size={20} className="text-amber-500" />
                 Today's Calorie Balance
               </h3>
-              <span className="text-xs text-gray-400 font-medium">
+              <span className="text-xs text-[#565e74] font-medium">
                 {new Date().toLocaleDateString('en-US', {
                   weekday: 'short',
                   month: 'short',
@@ -516,37 +518,12 @@ export default function Wearable() {
             </div>
 
             {/* Insight explanation */}
-            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-xs text-gray-600 flex items-start gap-3">
-              <TrendingUp size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+            <div className="p-4 bg-[#f8f9ff] rounded-2xl border border-[#e1e2e8] text-xs text-[#565e74] flex items-start gap-3">
+              <TrendingUp size={18} className="text-[#10B981] shrink-0 mt-0.5" />
               <p className="leading-relaxed">
                 <strong>Energy Balance Insight:</strong> Your Net Calorie Balance represents calories consumed minus active energy expended. Maintaining a slight deficit supports gradual weight loss, while a surplus supports muscle gain.
               </p>
             </div>
-          </div>
-
-          {/* ── Gamified Habit & Challenges Link Card ── */}
-          <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-transparent border border-emerald-500/20 rounded-3xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="text-3xl p-3 bg-white rounded-2xl shadow-sm">
-                🏆
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-900 text-sm">
-                  Gamified Challenges Auto-Tracking
-                </h4>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {(todayData.steps || 0) >= 5000
-                    ? '🎉 You have hit the 5,000 steps mark! Complete your challenge on the challenges page.'
-                    : `Walk ${(5000 - (todayData.steps || 0)).toLocaleString()} more steps to complete the Daily 5k Challenge.`}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/challenges')}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl transition shadow-sm shrink-0"
-            >
-              View Challenges →
-            </button>
           </div>
         </div>
       </div>
