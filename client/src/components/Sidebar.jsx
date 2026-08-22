@@ -20,7 +20,7 @@ export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const menuItems = [
+  const userMenuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Progress Tracker', path: '/progress', icon: TrendingUp },
     { name: 'Wearable Sync', path: '/wearable', icon: Watch },
@@ -32,7 +32,7 @@ export default function Sidebar() {
   ];
 
   const adminMenuItems = [
-    { name: 'Admin Dashboard', path: '/admin', icon: '📊' },
+    { name: 'Admin Dashboard', path: '/admin', icon: LayoutDashboard },
   ];
 
   const menuItems = user?.role === 'admin' ? adminMenuItems : userMenuItems;
