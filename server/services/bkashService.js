@@ -1,6 +1,3 @@
-// Bkash Payment API service
-// Member responsibility: Mohammed Mashrekin Yakub
-
 const axios = require('axios');
 
 const BKASH_BASE_URL = 'https://tokenized.sandbox.bka.sh/v1.2.0-beta'; // Use prod URL for live

@@ -7,7 +7,7 @@ export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const menuItems = [
+  const userMenuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: '📋' },
     { name: 'Progress Tracker', path: '/progress', icon: '📈' },
     { name: 'Wearable Sync', path: '/wearable', icon: '⌚' },
@@ -17,6 +17,12 @@ export default function Sidebar() {
     { name: 'Recipe Library', path: '/bookmarks', icon: '📖' },
     { name: 'My Profile', path: '/profile', icon: '👤' },
   ];
+
+  const adminMenuItems = [
+    { name: 'Admin Dashboard', path: '/admin', icon: '📊' },
+  ];
+
+  const menuItems = user?.role === 'admin' ? adminMenuItems : userMenuItems;
 
   const handleLogout = () => {
     logout();
@@ -63,18 +69,20 @@ export default function Sidebar() {
       {/* Upgrade / Premium Card & Profile at bottom */}
       <div className="p-4 border-t border-gray-100 space-y-4">
         {/* Go Premium Card */}
-        <div className="bg-emerald-50/70 border border-emerald-100/50 rounded-2xl p-4 text-center">
-          <h4 className="text-xs font-extrabold text-emerald-900 mb-1">Go Premium</h4>
-          <p className="text-[10px] text-emerald-700 mb-3 leading-relaxed">
-            Unlock unlimited AI food scans & Smart Lab report uploads.
-          </p>
-          <Link
-            to="/subscription"
-            className="block w-full bg-emerald-900 hover:bg-emerald-950 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-sm"
-          >
-            Upgrade Now
-          </Link>
-        </div>
+        {user?.role !== 'admin' && !user?.isPro && (
+          <div className="bg-emerald-50/70 border border-emerald-100/50 rounded-2xl p-4 text-center">
+            <h4 className="text-xs font-extrabold text-emerald-900 mb-1">Go Premium</h4>
+            <p className="text-[10px] text-emerald-700 mb-3 leading-relaxed">
+              Unlock unlimited AI food scans & Smart Lab report uploads.
+            </p>
+            <Link
+              to="/subscription"
+              className="block w-full bg-emerald-900 hover:bg-emerald-950 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-sm"
+            >
+              Upgrade Now
+            </Link>
+          </div>
+        )}
 
         {/* User Profile info */}
         {user && (
@@ -83,9 +91,11 @@ export default function Sidebar() {
               <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-650 flex items-center justify-center text-white font-bold text-sm shrink-0">
                 {user.name?.[0]?.toUpperCase()}
               </div>
-              <div className="min-w-0 flex flex-col">
+              <div className="min-w-0 flex flex-col justify-center">
                 <span className="text-xs font-bold text-gray-900 truncate leading-tight">{user.name}</span>
-                <span className="text-[10px] text-gray-400 font-medium">Score: {user.points || 0} pts</span>
+                {user?.role !== 'admin' && (
+                  <span className="text-[10px] text-gray-400 font-medium">Score: {user.points || 0} pts</span>
+                )}
               </div>
             </div>
             <button

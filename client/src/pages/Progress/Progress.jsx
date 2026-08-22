@@ -7,9 +7,9 @@ import { Flame, CheckCircle, Target } from 'lucide-react';
 
 // Joyful and vibrant colors
 const THEME = {
-  primary: '#ff6b6b', // Coral/Rose
-  secondary: '#feca57', // Sunflower Yellow
-  gradient: 'bg-gradient-to-br from-rose-400 via-orange-400 to-amber-300',
+  primary: '#10b981', // Emerald
+  secondary: '#34d399', // Light Emerald
+  gradient: 'bg-gradient-to-br from-emerald-400 via-green-400 to-teal-300',
   cardBg: 'bg-white/90 backdrop-blur-md',
 };
 
@@ -62,7 +62,7 @@ export default function Progress() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white/20 p-6 rounded-3xl shadow-lg backdrop-blur-md border border-white/30">
           <div className="flex items-center gap-4">
-            <div className="p-4 bg-white rounded-full shadow-md text-orange-500">
+            <div className="p-4 bg-white rounded-full shadow-md text-emerald-500">
               <Target size={32} />
             </div>
             <div>
@@ -72,7 +72,7 @@ export default function Progress() {
           </div>
           
           <div className="mt-4 md:mt-0 flex items-center gap-3 bg-white px-6 py-3 rounded-full shadow-xl transform hover:scale-105 transition-transform">
-            <Flame className="text-orange-500 animate-pulse" size={32} />
+            <Flame className="text-emerald-500 animate-pulse" size={32} />
             <div>
               <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Current Streak</p>
               <p className="text-3xl font-extrabold text-gray-800">{currentStreak} <span className="text-lg text-gray-500">Days</span></p>
@@ -95,13 +95,13 @@ export default function Progress() {
                   required
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
-                  className="w-full bg-gray-50/50 border-2 border-orange-200 rounded-xl px-4 py-3 text-gray-800 font-medium focus:outline-none focus:border-orange-500 transition-colors placeholder-gray-400"
+                  className="w-full bg-gray-50/50 border-2 border-emerald-200 rounded-xl px-4 py-3 text-gray-800 font-medium focus:outline-none focus:border-emerald-500 transition-colors placeholder-gray-400"
                   placeholder="e.g. 70.5"
                 />
               </div>
 
               <div 
-                className="bg-orange-50/50 rounded-2xl p-4 border border-orange-100 flex items-center justify-between cursor-pointer hover:bg-orange-100/50 transition-colors shadow-inner" 
+                className="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100 flex items-center justify-between cursor-pointer hover:bg-emerald-100/50 transition-colors shadow-inner" 
                 onClick={() => setAdherence(!adherence)}
               >
                 <div>
@@ -115,7 +115,7 @@ export default function Progress() {
 
               <button 
                 type="submit"
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 text-white font-bold text-lg shadow-lg hover:shadow-orange-500/30 transform hover:-translate-y-1 transition-all"
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-lg shadow-lg hover:shadow-emerald-500/30 transform hover:-translate-y-1 transition-all"
               >
                 Save Progress
               </button>
@@ -131,8 +131,8 @@ export default function Progress() {
                   <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorWeight" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="5%" stopColor="#ff6b6b" stopOpacity={1}/>
-                        <stop offset="95%" stopColor="#feca57" stopOpacity={1}/>
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={1}/>
+                        <stop offset="95%" stopColor="#34d399" stopOpacity={1}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
@@ -155,16 +155,16 @@ export default function Progress() {
                     />
                     <Tooltip 
                       contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15)' }}
-                      itemStyle={{ color: '#ff6b6b', fontWeight: 'bold' }}
-                      cursor={{ stroke: '#feca57', strokeWidth: 2, strokeDasharray: '5 5' }}
+                      itemStyle={{ color: '#10b981', fontWeight: 'bold' }}
+                      cursor={{ stroke: '#34d399', strokeWidth: 2, strokeDasharray: '5 5' }}
                     />
                     <Line 
                       type="monotone" 
                       dataKey="weight" 
                       stroke="url(#colorWeight)" 
                       strokeWidth={5} 
-                      dot={{ r: 6, fill: '#fff', stroke: '#ff6b6b', strokeWidth: 3 }}
-                      activeDot={{ r: 8, fill: '#ff6b6b', stroke: '#fff', strokeWidth: 3 }} 
+                      dot={{ r: 6, fill: '#fff', stroke: '#10b981', strokeWidth: 3 }}
+                      activeDot={{ r: 8, fill: '#10b981', stroke: '#fff', strokeWidth: 3 }} 
                     />
                   </LineChart>
                 </ResponsiveContainer>

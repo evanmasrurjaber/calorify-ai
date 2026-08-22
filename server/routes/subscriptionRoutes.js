@@ -4,7 +4,7 @@ const { initiatePayment, paymentCallback, getSubscriptionStatus } = require('../
 const { protect } = require('../middleware/authMiddleware');
 
 router.post('/initiate', protect, initiatePayment);
-router.post('/callback', paymentCallback); // Bkash webhook — no JWT
+router.post('/callback', protect, paymentCallback);
 router.get('/status', protect, getSubscriptionStatus);
 
 module.exports = router;

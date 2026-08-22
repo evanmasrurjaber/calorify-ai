@@ -12,6 +12,25 @@ const logMealByImage = async (req, res) => {
       return res.status(400).json({ message: 'No image file uploaded.' });
     }
 
+    // Rate limiting for free users
+    if (!req.user.isPro) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const scansToday = await MealLog.countDocuments({
+        user: req.user.id,
+        loggedVia: 'image',
+        createdAt: { $gte: today }
+      });
+
+      if (scansToday >= 3) {
+        return res.status(403).json({ 
+          message: 'Free tier limit reached. Upgrade to Pro for unlimited AI food scans!',
+          limitReached: true
+        });
+      }
+    }
+
     const mealType = req.body.mealType || 'snacks';
 
     // Send image buffer to Gemini Vision via calorieApiService

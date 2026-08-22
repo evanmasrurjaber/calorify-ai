@@ -22,6 +22,7 @@ import Profile from './pages/Profile/Profile';
 
 // Admin
 import AdminDashboard from './pages/Admin/AdminDashboard';
+import AdminLogin from './pages/Auth/AdminLogin';
 
 import Sidebar from './components/Sidebar';
 
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
 
           {/* Admin-only routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminRoute><Layout><AdminDashboard /></Layout></AdminRoute>} />
 
           {/* Default redirect */}
