@@ -92,9 +92,73 @@ function mergeMedicalReports(reports) {
   return merged;
 }
 
-// ─── Helper: Build the multi-source Gemini prompt ────────────────────────────
-function buildDietPlanPrompt({ user, reportData, wearableData, goalText }) {
-  // Section: Health Profile (always present)
+// ─── Helper: Dictionaries for Cuisines and Diet Preferences ─────────────────
+const CUISINE_DEFINITIONS = {
+  bangladeshi: 'Authentic Bangladeshi / Bengali cuisine (e.g. Shak bhaji, Chorchori, Shorshe Ilish, Rui Kalia, Bhorta, Daal, Khichuri).',
+  pan_asian: 'Pan-Asian cuisine (e.g. Thai, Japanese, Chinese, Vietnamese inspired stir-fries, noodle soups, steamed fish, edamame, tofu).',
+  continental: 'Continental / Western cuisine (e.g. Grilled proteins, roasted vegetables, baked salmon, garden salads, chicken breast, quinoa bowls).',
+  italian: 'Healthy Italian cuisine (e.g. Whole-wheat pasta, marinara, grilled chicken piccata, minestrone, caprese, herb-roasted vegetables).',
+  mediterranean: 'Mediterranean cuisine (e.g. Greek salads, hummus, grilled seafood, tabbouleh, lean chicken shawarma bowls, olive oil, tzatziki).',
+  middle_eastern: 'Middle Eastern cuisine (e.g. Shish tawook, lentil soup/shorba, fattoush, grilled kababs, spiced chickpea bowls).',
+  mexican: 'Healthy Mexican cuisine (e.g. Burrito bowls, grilled fajitas, black bean salsa, guacamole, corn tortilla tacos, lime-cilantro chicken).',
+  indian: 'Pan-Indian cuisine (e.g. Tandoori chicken/paneer, dal tadka, palak, sambar, idli, vegetable curries).',
+};
+
+const DIET_PREFERENCE_DEFINITIONS = {
+  diabetic_friendly: 'Strictly diabetic-friendly: prioritize low-glycemic index (GI) foods, complex carbohydrates, high dietary fiber, and zero refined sugars.',
+  low_carb_keto: 'Low-carb / Keto-aligned: minimize high-carb grains/rice/potatoes; emphasize lean meats, fish, eggs, avocado, nuts, and leafy greens.',
+  high_protein: 'High-protein focus: maximize protein density with generous servings of fish, lean poultry, eggs, legumes, and tofu.',
+  low_oil: 'Low-oil / Heart-healthy: utilize air-frying, steaming, poaching, grilling with minimal cooking oil.',
+  vegetarian_vegan: '100% Vegetarian / Plant-based: rely on wholesome plant proteins (lentils, chickpeas, tofu, paneer) and seasonal vegetables.',
+  gluten_free: 'Gluten-free: avoid wheat, barley, rye; use rice, oats, quinoa, corn, potatoes, and naturally gluten-free ingredients.',
+  quick_prep: 'Quick & easy preparation: accessible everyday ingredients taking under 20 minutes to prepare and cook.',
+  balanced_macro: 'Balanced macronutrient distribution (~45-50% carbs, 25-30% protein, 20-25% healthy fats).',
+};
+
+function formatPreferences({ cuisines = [], customCuisine = '', dietPreferences = [], customDietPreference = '', customNotes = '' }) {
+  const rules = [];
+
+  // Cuisine rules
+  const cuisineTexts = [];
+  if (cuisines?.length) {
+    cuisines.forEach((c) => {
+      if (CUISINE_DEFINITIONS[c]) cuisineTexts.push(CUISINE_DEFINITIONS[c]);
+      else cuisineTexts.push(c);
+    });
+  }
+  if (customCuisine && customCuisine.trim()) {
+    cuisineTexts.push(`Custom Cuisine Style: ${customCuisine.trim()}`);
+  }
+  if (cuisineTexts.length > 0) {
+    rules.push(`CUISINE STYLES TO EMPHASIZE: ${cuisineTexts.join(' | ')}`);
+  } else {
+    rules.push(`CUISINE STYLE: Authentic Bangladeshi & South Asian dishes.`);
+  }
+
+  // Dietary preference rules
+  const dietTexts = [];
+  if (dietPreferences?.length) {
+    dietPreferences.forEach((d) => {
+      if (DIET_PREFERENCE_DEFINITIONS[d]) dietTexts.push(DIET_PREFERENCE_DEFINITIONS[d]);
+      else dietTexts.push(d);
+    });
+  }
+  if (customDietPreference && customDietPreference.trim()) {
+    dietTexts.push(`Custom Diet Requirement: ${customDietPreference.trim()}`);
+  }
+  if (dietTexts.length > 0) {
+    rules.push(`DIETARY PREFERENCES: ${dietTexts.join(' | ')}`);
+  }
+
+  // Custom User Notes
+  if (customNotes && customNotes.trim()) {
+    rules.push(`USER SPECIFIC REQUESTS: ${customNotes.trim()}`);
+  }
+
+  return rules;
+}
+
+function buildDietPlanPrompt({ user, reportData, wearableData, goalText, cuisines = [], customCuisine = '', dietPreferences = [], customDietPreference = '', customNotes = '' }) {
   const profileSection = `
 === PERSONAL HEALTH PROFILE ===
 - Age: ${user.age || 'Not specified'} years
@@ -104,61 +168,61 @@ function buildDietPlanPrompt({ user, reportData, wearableData, goalText }) {
 - Activity Level: ${(user.activityLevel || 'sedentary').replace(/_/g, ' ')}
 - Daily Calorie Target (TDEE-calculated): ${user.dailyCalorieTarget} kcal
 - Fitness Goal: ${goalText}
-${user.medicalConditions?.length ? `- Medical Conditions (self-reported): ${user.medicalConditions.join(', ')}` : '- Medical Conditions: None reported'}
-${user.allergies?.length ? `- Allergies (self-reported): ${user.allergies.join(', ')}` : '- Allergies: None reported'}`.trim();
+${user.medicalConditions?.length ? `- Medical Conditions: ${user.medicalConditions.join(', ')}` : '- Medical Conditions: None reported'}
+${user.allergies?.length ? `- Allergies: ${user.allergies.join(', ')}` : '- Allergies: None reported'}`.trim();
 
-  // Section: Medical Reports (optional — only included if reports exist)
   let medicalSection = '';
   if (reportData) {
     const diagStr = reportData.diagnoses?.length ? reportData.diagnoses.join(', ') : 'None on record';
     const hba1cStr = reportData.hba1c != null ? `${reportData.hba1c}%` : 'Not recorded';
     const medAllergyStr = reportData.allergies?.length ? reportData.allergies.join(', ') : 'None on record';
     medicalSection = `
-=== MEDICAL REPORT DATA (merged from all uploaded reports) ===
+=== MEDICAL REPORT DATA ===
 - Confirmed Diagnoses: ${diagStr}
 - HbA1c Level: ${hba1cStr}
 - Medically Confirmed Allergies: ${medAllergyStr}`.trim();
   }
 
-  // Section: Wearable / Activity Data (optional — only included if a Progress log exists)
   let wearableSection = '';
   if (wearableData) {
     wearableSection = `
-=== WEARABLE / ACTIVITY DATA (most recent log) ===
+=== WEARABLE / ACTIVITY DATA ===
 - Daily Steps Recorded: ${wearableData.steps?.toLocaleString() || 0}
 - Active Calories Burned: ${wearableData.caloriesBurned || 0} kcal
 - Date Recorded: ${wearableData.date ? new Date(wearableData.date).toDateString() : 'Unknown'}`.trim();
   }
 
-  // Assemble rules based on available data
-  const rules = [
+  const baseRules = [
     `Avoid ALL allergens mentioned across both the health profile and medical report sections.`,
     `Keep each day's total calories within ±75 kcal of the Daily Calorie Target (${user.dailyCalorieTarget} kcal).`,
-    `All meals must be authentic Bangladeshi dishes.`,
     `Each day must have exactly 4 meals: breakfast, lunch, snacks, dinner — in that order.`,
   ];
+
+  const prefRules = formatPreferences({ cuisines, customCuisine, dietPreferences, customDietPreference, customNotes });
+
   if (reportData?.hba1c != null && reportData.hba1c > 6.5) {
-    rules.push(`IMPORTANT: HbA1c is ${reportData.hba1c}% — generate a diabetic-friendly, low-glycemic index plan. Minimize simple carbohydrates, prioritize high-fiber foods.`);
+    baseRules.push(`IMPORTANT: HbA1c is ${reportData.hba1c}% — generate a diabetic-friendly, low-glycemic index plan.`);
   }
   if (wearableData?.steps > 10000) {
-    rules.push(`User is highly active (${wearableData.steps?.toLocaleString()} steps) — adjust meal timing to support recovery and muscle repair.`);
+    baseRules.push(`User is highly active (${wearableData.steps?.toLocaleString()} steps) — adjust meal timing to support recovery.`);
   }
 
-  const rulesSection = `=== INSTRUCTIONS ===\n${rules.map((r, i) => `${i + 1}. ${r}`).join('\n')}`;
+  const allRules = [...baseRules, ...prefRules];
+  const rulesSection = `=== INSTRUCTIONS ===\n${allRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}`;
 
   const exampleStructure = `[
   {
     "day": "Monday",
     "meals": [
-      { "meal": "breakfast", "name": "Attar Roti with Vegetable Daal", "calories": 400, "carbs": 50, "protein": 15, "fat": 10 },
-      { "meal": "lunch", "name": "Plain Rice with Rui Fish Curry & Shak", "calories": 700, "carbs": 90, "protein": 30, "fat": 15 },
-      { "meal": "snacks", "name": "Muri Makha (Puffed Rice) & Green Tea", "calories": 200, "carbs": 30, "protein": 5, "fat": 5 },
-      { "meal": "dinner", "name": "Chicken Khichuri (Low Oil)", "calories": 600, "carbs": 70, "protein": 25, "fat": 15 }
+      { "meal": "breakfast", "name": "...", "calories": 400, "carbs": 50, "protein": 15, "fat": 10 },
+      { "meal": "lunch", "name": "...", "calories": 700, "carbs": 90, "protein": 30, "fat": 15 },
+      { "meal": "snacks", "name": "...", "calories": 200, "carbs": 30, "protein": 5, "fat": 5 },
+      { "meal": "dinner", "name": "...", "calories": 600, "carbs": 70, "protein": 25, "fat": 15 }
     ]
   }
 ]`;
 
-  return `Generate a structured 7-day Bangladeshi diet plan for a user with the following profile:
+  return `Generate a structured 7-day personalized diet plan for a user with the following profile:
 
 ${profileSection}
 ${medicalSection ? '\n' + medicalSection : ''}
@@ -168,8 +232,77 @@ ${rulesSection}
 
 Return ONLY raw valid JSON matching this schema for all 7 days (Monday through Sunday). Do not include markdown code block formatting.
 
-Example structure (follow this exactly for all 7 days):
+Example structure:
 ${exampleStructure}`;
+}
+
+function buildSingleDayPrompt({ dayName, user, reportData, wearableData, goalText, cuisines = [], customCuisine = '', dietPreferences = [], customDietPreference = '', customNotes = '' }) {
+  const profileSection = `
+=== PERSONAL HEALTH PROFILE ===
+- Target Calories: ${user.dailyCalorieTarget} kcal
+- Fitness Goal: ${goalText}
+${user.medicalConditions?.length ? `- Medical Conditions: ${user.medicalConditions.join(', ')}` : ''}
+${user.allergies?.length ? `- Allergies: ${user.allergies.join(', ')}` : ''}`.trim();
+
+  const baseRules = [
+    `Generate exactly 4 distinct, balanced meals for ${dayName}: breakfast, lunch, snacks, dinner.`,
+    `Keep the day's total calories within ±50 kcal of the target (${user.dailyCalorieTarget} kcal).`,
+    `Avoid user allergens.`,
+  ];
+
+  const prefRules = formatPreferences({ cuisines, customCuisine, dietPreferences, customDietPreference, customNotes });
+  const allRules = [...baseRules, ...prefRules];
+  const rulesSection = allRules.map((r, i) => `${i + 1}. ${r}`).join('\n');
+
+  return `Generate a fresh single-day meal plan for "${dayName}" for this user:
+${profileSection}
+
+=== INSTRUCTIONS ===
+${rulesSection}
+
+Return ONLY raw valid JSON matching this schema:
+{
+  "day": "${dayName}",
+  "meals": [
+    { "meal": "breakfast", "name": "...", "calories": 400, "carbs": 45, "protein": 15, "fat": 10 },
+    { "meal": "lunch", "name": "...", "calories": 700, "carbs": 80, "protein": 30, "fat": 15 },
+    { "meal": "snacks", "name": "...", "calories": 200, "carbs": 25, "protein": 5, "fat": 5 },
+    { "meal": "dinner", "name": "...", "calories": 600, "carbs": 65, "protein": 25, "fat": 12 }
+  ]
+}
+Do not include markdown code block characters.`;
+}
+
+function buildSingleMealPrompt({ mealType, targetCalories, user, reportData, currentMealName, cuisines = [], customCuisine = '', dietPreferences = [], customDietPreference = '', customNotes = '' }) {
+  const baseRules = [
+    `Generate a completely NEW, fresh alternative dish for "${mealType}".`,
+    `Target calories for this meal: approximately ${targetCalories} kcal (±40 kcal).`,
+    `Do NOT return the current dish name "${currentMealName}" — provide a brand new alternative.`,
+  ];
+
+  if (user.allergies?.length) {
+    baseRules.push(`Avoid user allergies: ${user.allergies.join(', ')}`);
+  }
+
+  const prefRules = formatPreferences({ cuisines, customCuisine, dietPreferences, customDietPreference, customNotes });
+  const allRules = [...baseRules, ...prefRules];
+  const rulesSection = allRules.map((r, i) => `${i + 1}. ${r}`).join('\n');
+
+  return `Generate a single fresh alternative meal item for ${mealType}:
+
+=== INSTRUCTIONS ===
+${rulesSection}
+
+Return ONLY raw valid JSON matching this schema:
+{
+  "meal": "${mealType}",
+  "name": "Fresh Alternative Dish Name",
+  "calories": ${targetCalories},
+  "carbs": 45,
+  "protein": 25,
+  "fat": 12
+}
+Do not include markdown code block characters.`;
 }
 
 // ─── Helper: Build human-readable labels ─────────────────────────────────────
@@ -256,6 +389,13 @@ const getGenerationContext = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const generateDietPlan = async (req, res) => {
   try {
+    const {
+      cuisines = [],
+      customCuisine = '',
+      dietPreferences = [],
+      customDietPreference = '',
+      customNotes = '',
+    } = req.body || {};
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -288,6 +428,11 @@ const generateDietPlan = async (req, res) => {
       reportData,
       wearableData,
       goalText: getGoalText(user.goal),
+      cuisines,
+      customCuisine,
+      dietPreferences,
+      customDietPreference,
+      customNotes,
     });
 
     // 6. Call Gemini API and parse the JSON response
@@ -315,8 +460,148 @@ const generateDietPlan = async (req, res) => {
 
     res.status(201).json(dietPlan);
   } catch (error) {
-    console.error('Diet plan generation error:', error);
-    res.status(500).json({ message: error.message });
+    const errorMsg = error.response?.data?.error?.message || error.message || 'Failed to generate diet plan';
+    console.error('Diet plan generation error:', errorMsg);
+    res.status(500).json({ message: errorMsg });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @route  POST /api/diet-plans/regenerate-day
+// Regenerates only a single day in the active plan
+// ─────────────────────────────────────────────────────────────────────────────
+const regenerateDay = async (req, res) => {
+  try {
+    const {
+      dayIndex = 0,
+      cuisines = [],
+      customCuisine = '',
+      dietPreferences = [],
+      customDietPreference = '',
+      customNotes = '',
+    } = req.body || {};
+    const plan = await DietPlan.findOne({ user: req.user.id, isActive: true });
+    if (!plan) return res.status(404).json({ message: 'No active diet plan found' });
+
+    if (dayIndex < 0 || dayIndex >= plan.plan.length) {
+      return res.status(400).json({ message: 'Invalid day index' });
+    }
+
+    const targetDay = plan.plan[dayIndex];
+    const user = await User.findById(req.user.id);
+    const allReports = await MedicalReport.find({ user: user._id }).sort({ createdAt: -1 });
+    const reportData = mergeMedicalReports(allReports);
+    const latestProgress = await Progress.findOne({ user: user._id }).sort({ date: -1 });
+    const wearableData =
+      latestProgress && (latestProgress.steps > 0 || latestProgress.caloriesBurned > 0)
+        ? { steps: latestProgress.steps, caloriesBurned: latestProgress.caloriesBurned, date: latestProgress.date }
+        : null;
+
+    const prompt = buildSingleDayPrompt({
+      dayName: targetDay.day,
+      user,
+      reportData,
+      wearableData,
+      goalText: getGoalText(user.goal),
+      cuisines,
+      customCuisine,
+      dietPreferences,
+      customDietPreference,
+      customNotes,
+    });
+
+    const rawResponse = await generateText(prompt);
+    const cleanJsonStr = rawResponse.replace(/```json|```/g, '').trim();
+    const parsedDay = JSON.parse(cleanJsonStr);
+
+    // Update target day in the active plan
+    targetDay.meals = parsedDay.meals;
+    targetDay.totalCalories = parsedDay.meals.reduce((sum, m) => sum + (m.calories || 0), 0);
+
+    plan.markModified('plan');
+    await plan.save();
+
+    res.json(plan);
+  } catch (error) {
+    const errorMsg = error.response?.data?.error?.message || error.message || 'Failed to regenerate day';
+    console.error('Regenerate day error:', errorMsg);
+    res.status(500).json({ message: errorMsg });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @route  POST /api/diet-plans/regenerate-meal
+// Regenerates a single meal slot in the active plan
+// ─────────────────────────────────────────────────────────────────────────────
+const regenerateMeal = async (req, res) => {
+  try {
+    const {
+      mealId,
+      cuisines = [],
+      customCuisine = '',
+      dietPreferences = [],
+      customDietPreference = '',
+      customNotes = '',
+    } = req.body || {};
+    if (!mealId) return res.status(400).json({ message: 'mealId is required' });
+
+    const plan = await DietPlan.findOne({ user: req.user.id, isActive: true });
+    if (!plan) return res.status(404).json({ message: 'No active diet plan found' });
+
+    let targetMeal = null;
+    let targetDay = null;
+
+    for (const day of plan.plan) {
+      const meal = day.meals.find((m) => m._id?.toString() === mealId.toString());
+      if (meal) {
+        targetMeal = meal;
+        targetDay = day;
+        break;
+      }
+    }
+
+    if (!targetMeal) {
+      return res.status(404).json({ message: 'Meal not found in active diet plan' });
+    }
+
+    const user = await User.findById(req.user.id);
+    const allReports = await MedicalReport.find({ user: user._id }).sort({ createdAt: -1 });
+    const reportData = mergeMedicalReports(allReports);
+
+    const prompt = buildSingleMealPrompt({
+      mealType: targetMeal.meal,
+      targetCalories: targetMeal.calories || Math.round(user.dailyCalorieTarget / 4),
+      user,
+      reportData,
+      currentMealName: targetMeal.name,
+      cuisines,
+      customCuisine,
+      dietPreferences,
+      customDietPreference,
+      customNotes,
+    });
+
+    const rawResponse = await generateText(prompt);
+    const cleanJsonStr = rawResponse.replace(/```json|```/g, '').trim();
+    const newMealData = JSON.parse(cleanJsonStr);
+
+    targetMeal.name = newMealData.name;
+    targetMeal.calories = newMealData.calories;
+    targetMeal.carbs = newMealData.carbs;
+    targetMeal.protein = newMealData.protein;
+    targetMeal.fat = newMealData.fat;
+    targetMeal.recipe = null; // Clear cached recipe so new recipe can be generated
+
+    targetDay.totalCalories = targetDay.meals.reduce((sum, m) => sum + (m.calories || 0), 0);
+
+    plan.markModified('plan');
+    await plan.save();
+
+    res.json(plan);
+  } catch (error) {
+    const errorMsg = error.response?.data?.error?.message || error.message || 'Failed to regenerate meal';
+    console.error('Regenerate meal error:', errorMsg);
+    res.status(500).json({ message: errorMsg });
   }
 };
 
@@ -346,7 +631,7 @@ const generateRecipe = async (req, res) => {
 
     let targetMeal = null;
     for (const day of plan.plan) {
-      const meal = day.meals.id(id);
+      const meal = day.meals.find((m) => m._id?.toString() === id.toString());
       if (meal) {
         targetMeal = meal;
         break;
@@ -442,6 +727,8 @@ Return ONLY valid raw JSON. Do not include markdown code block characters like \
 
 module.exports = {
   generateDietPlan,
+  regenerateDay,
+  regenerateMeal,
   getActivePlan,
   generateRecipe,
   generateRecipeDirectly,

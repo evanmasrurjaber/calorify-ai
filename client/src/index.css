@@ -52,6 +52,34 @@ body {
   margin: 0;
 }
 
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drawProgress {
+  0% {
+    stroke-dashoffset: 283;
+  }
+  100% {
+    stroke-dashoffset: var(--target-offset, 60);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-draw-progress {
+  animation: drawProgress 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 #root {
   width: 100%;
   max-width: 100%;
