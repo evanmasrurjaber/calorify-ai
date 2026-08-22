@@ -52,6 +52,15 @@ const userSchema = new mongoose.Schema(
       enum: ['none', 'healthy_starter', 'nutrition_master', 'diet_legend'],
       default: 'none',
     },
+
+    // Google Health API integration (wearable data ingestion)
+    googleFit: {
+      connected:    { type: Boolean, default: false },
+      accessToken:  { type: String },   // short-lived, rotated on each refresh
+      refreshToken: { type: String },   // long-lived, used to get new access tokens
+      tokenExpiry:  { type: Date },     // expiry time of the current access token
+      lastSyncedAt: { type: Date },     // timestamp of the last successful data sync
+    },
   },
   { timestamps: true }
 );
