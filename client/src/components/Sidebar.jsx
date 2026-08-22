@@ -62,18 +62,20 @@ export default function Sidebar() {
       {/* Upgrade / Premium Card & Profile at bottom */}
       <div className="p-4 border-t border-gray-100 space-y-4">
         {/* Go Premium Card */}
-        <div className="bg-emerald-50/70 border border-emerald-100/50 rounded-2xl p-4 text-center">
-          <h4 className="text-xs font-extrabold text-emerald-900 mb-1">Go Premium</h4>
-          <p className="text-[10px] text-emerald-700 mb-3 leading-relaxed">
-            Unlock unlimited AI food scans & Smart Lab report uploads.
-          </p>
-          <Link
-            to="/subscription"
-            className="block w-full bg-emerald-900 hover:bg-emerald-950 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-sm"
-          >
-            Upgrade Now
-          </Link>
-        </div>
+        {!user?.isPro && (
+          <div className="bg-emerald-50/70 border border-emerald-100/50 rounded-2xl p-4 text-center">
+            <h4 className="text-xs font-extrabold text-emerald-900 mb-1">Go Premium</h4>
+            <p className="text-[10px] text-emerald-700 mb-3 leading-relaxed">
+              Unlock unlimited AI food scans & Smart Lab report uploads.
+            </p>
+            <Link
+              to="/subscription"
+              className="block w-full bg-emerald-900 hover:bg-emerald-950 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-sm"
+            >
+              Upgrade Now
+            </Link>
+          </div>
+        )}
 
         {/* User Profile info */}
         {user && (

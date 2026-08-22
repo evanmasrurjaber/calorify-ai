@@ -2,6 +2,7 @@
 // Supports: image upload (Gemini Vision) + text entry (Gemini text)
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { logMealText, logMealImage, getDailyLog, deleteMealLog } from '../../services/mealLogService';
 import { useAuth } from '../../context/AuthContext';
 
@@ -205,7 +206,11 @@ export default function MealLog() {
       setImageSaved(true); // auto-saved on analysis
       fetchHistory(historyDate);
     } catch (err) {
-      setImageError(err.response?.data?.message || 'Failed to analyse image. Please try again.');
+      if (err.response?.status === 403 && err.response?.data?.limitReached) {
+        setImageError('LIMIT_REACHED');
+      } else {
+        setImageError(err.response?.data?.message || 'Failed to analyse image. Please try again.');
+      }
     } finally {
       setImageAnalysing(false);
     }
@@ -343,7 +348,20 @@ export default function MealLog() {
               </button>
             )}
 
-            {imageError && <p className="text-rose-400 text-sm">{imageError}</p>}
+            {imageError === 'LIMIT_REACHED' ? (
+              <div className="bg-gradient-to-r from-pink-500/10 to-rose-500/10 border border-pink-500/20 p-4 rounded-2xl flex items-start gap-3 mt-4">
+                <span className="text-2xl">👑</span>
+                <div>
+                  <h4 className="text-pink-400 font-bold text-sm mb-1">Free Tier Limit Reached</h4>
+                  <p className="text-gray-400 text-xs mb-3">You've used all 3 AI food scans for today. Upgrade to Pro for unlimited AI scans and advanced nutrition insights.</p>
+                  <Link to="/subscription" className="bg-pink-500 hover:bg-pink-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition inline-block">
+                    Upgrade to Pro
+                  </Link>
+                </div>
+              </div>
+            ) : imageError && (
+              <p className="text-rose-400 text-sm mt-2">{imageError}</p>
+            )}
 
             {/* Analyse button */}
             <button
