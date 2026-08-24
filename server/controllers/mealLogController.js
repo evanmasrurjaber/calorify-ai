@@ -89,22 +89,42 @@ const logMealByText = async (req, res) => {
   }
 };
 
-// ─── GET /api/meal-logs?date=YYYY-MM-DD ───────────────────────────────────────
-// Fetch all meal logs for the authenticated user on a given date
-// Also returns daily totals (calories, carbs, protein, fat)
+// ─── GET /api/meal-logs?date=YYYY-MM-DD&period=daily|weekly|monthly ──────────
+// Fetch all meal logs for the authenticated user for the requested period.
+// Also returns aggregated totals (calories, carbs, protein, fat).
 const getDailyLog = async (req, res) => {
   try {
     const dateStr = req.query.date || new Date().toISOString().split('T')[0];
-    const start   = new Date(dateStr);
-    const end     = new Date(dateStr);
-    end.setDate(end.getDate() + 1);
+    const period  = req.query.period || 'daily';
+
+    // Build UTC start/end for the requested period
+    const anchor = new Date(dateStr + 'T00:00:00Z');
+    let start, end;
+
+    if (period === 'weekly') {
+      // Week starts on Monday
+      const dayOfWeek = anchor.getUTCDay(); // 0=Sun … 6=Sat
+      const diffToMon = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
+      start = new Date(anchor);
+      start.setUTCDate(anchor.getUTCDate() + diffToMon);
+      end = new Date(start);
+      end.setUTCDate(start.getUTCDate() + 7);
+    } else if (period === 'monthly') {
+      start = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), 1));
+      end   = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() + 1, 1));
+    } else {
+      // daily (default)
+      start = anchor;
+      end   = new Date(anchor);
+      end.setUTCDate(anchor.getUTCDate() + 1);
+    }
 
     const logs = await MealLog.find({
       user: req.user.id,
       date: { $gte: start, $lt: end },
-    }).sort({ createdAt: 1 });
+    }).sort({ date: 1, createdAt: 1 });
 
-    // Aggregate daily totals
+    // Aggregate totals across the entire period
     const totals = logs.reduce(
       (acc, log) => ({
         calories: acc.calories + (log.calories || 0),
@@ -115,7 +135,7 @@ const getDailyLog = async (req, res) => {
       { calories: 0, carbs: 0, protein: 0, fat: 0 }
     );
 
-    res.json({ logs, totals });
+    res.json({ logs, totals, period, start, end });
   } catch (error) {
     console.error('[getDailyLog]', error.message);
     res.status(500).json({ message: error.message });
