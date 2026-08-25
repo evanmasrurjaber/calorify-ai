@@ -37,16 +37,16 @@ const dishData = [
   { name: "Prawn Polao", imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJc0O8FYH-j36Nm9O90--srmtsVwjNwSjjZQZKTs5rfrn_bmn7sWZ5m3w&s=10" },
 
   // Rice
-  { name: "Plain Rice", imageUrl: "https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?w=800" },
-  { name: "Fried Rice", imageUrl: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=800" },
-  { name: "Khichuri", imageUrl: wiki("Khichuri,_a_bangali_dish.jpg") },
-  { name: "Bhuna Khichuri", imageUrl: wiki("Khichuri,_a_bangali_dish.jpg") },
-  { name: "Chicken Khichuri", imageUrl: wiki("Khichuri,_a_bangali_dish.jpg") },
-  { name: "Beef Khichuri", imageUrl: wiki("Khichuri,_a_bangali_dish.jpg") },
-  { name: "Mutton Khichuri", imageUrl: wiki("Khichuri,_a_bangali_dish.jpg") },
-  { name: "Panta Bhat", imageUrl: "https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?w=800" },
-  { name: "Lemon Rice", imageUrl: "https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?w=800" },
-  { name: "Jeera Rice", imageUrl: "https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?w=800" },
+  { name: "Plain Rice", imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIACDyHMB_210OY1b6aMWbp11wZ24EEo5MoZDXe-zOCECn4N1fxXnQTDE&s=10" },
+  { name: "Fried Rice", imageUrl: "https://www.averiecooks.com/wp-content/uploads/2025/03/chickenfriedrice-9.jpg" },
+  { name: "Khichuri", imageUrl: "https://assets.epicurious.com/photos/640aab48882e5bf74cea370a/1:1/w_2608,h_2608,c_limit/Bhuna%20khichuri-RECIPE.jpg" },
+  { name: "Bhuna Khichuri", imageUrl: "https://assets.epicurious.com/photos/640aab48882e5bf74cea370a/1:1/w_2608,h_2608,c_limit/Bhuna%20khichuri-RECIPE.jpg" },
+  { name: "Chicken Khichuri", imageUrl: "https://www.utshob.com/uploads/product_images/featured_images/egg_Khisuri_6339249a86379.jpg" },
+  { name: "Beef Khichuri", imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSDuuMSIIXUG97n19lDIn4KMKXAr4v40lXtPqBENZyis4Gh0Pt3d6i2BLg&s=10" },
+  { name: "Mutton Khichuri", imageUrl: "https://cf-img-a-in.tosshub.com/lingo/atbn/images/story/202307/mutton_khichdi_recipe_bengali_how_to_make_mutton_chicken_khichuri-sixteen_nine.jpg?size=948:533" },
+  { name: "Panta Bhat", imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQHA9zhV5yb5gl4WlUSoOsNkbUnIHl7wYNg0aU7O7sCnDlxiLbw81NO1zI&s=10" },
+  { name: "Lemon Rice", imageUrl: "https://www.indianveggiedelight.com/wp-content/uploads/2023/03/lemon-rice-stovetop-featured.jpg" },
+  { name: "Jeera Rice", imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4WdqML2ylrZt6Rh-QWxpLdWrZeetg9xly8IuRYEy6pwEcabPSATSnOM3h&s=10" },
 
   // Chicken
   { name: "Chicken Roast", imageUrl: "https://images.unsplash.com/photo-1768179669433-bd9d52949c20?w=800" },
@@ -145,7 +145,7 @@ const dishData = [
   { name: "Shemai", imageUrl: wiki("Gaja_or_Goja,_Traditional_Bangladeshi_Sweetmeat,_13_April_2014_in_Dhaka,_Bangladesh.jpg") },
 
   // Common generated names by Gemini
-  { name: "Attar Roti with Vegetable Daal", imageUrl: wiki("Homemade_flour_bread_for_breakfast._Bangladesh.jpg") },
+  { name: "Attar Roti with Vegetable Daal", imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT2hE7nKd5TkOTU7OexmwEUrfkyOtvyLmPD0K4dd-lDlIENAk_perLISHNL&s=10" },
   { name: "Plain Rice with Rui Fish Curry & Shak", imageUrl: wiki("Bori_diye_rui_machher_jhol.jpg") },
   { name: "Muri Makha (Puffed Rice) & Green Tea", imageUrl: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=800" },
   { name: "Chicken Khichuri (Low Oil)", imageUrl: wiki("Khichuri,_a_bangali_dish.jpg") }

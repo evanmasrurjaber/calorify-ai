@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getBookmarks, removeBookmark, addBookmark } from '../../services/bookmarkService';
 import { generateRecipeDirectly } from '../../services/dietPlanService';
-import { Info, Heart, Flame, Utensils } from 'lucide-react';
+import { Info, Heart, Flame, Utensils, Crown } from 'lucide-react';
 
 const getDishImage = (name, recipe) => {
   if (recipe?.image_url) return recipe.image_url;
@@ -25,6 +25,7 @@ export default function Bookmarks() {
 
   // Fetch bookmarks on load
   const [recipeImage, setRecipeImage] = useState('');
+  const [bookmarkError, setBookmarkError] = useState('');
 
   useEffect(() => {
     if (!selectedRecipe) {
@@ -79,6 +80,7 @@ export default function Bookmarks() {
   // Add selected recipe to bookmarks
   const handleAddBookmark = async () => {
     if (!selectedRecipe) return;
+    setBookmarkError('');
     try {
       const recipeToSave = {
         ...selectedRecipe,
@@ -91,7 +93,7 @@ export default function Bookmarks() {
       setBookmarks(data || []);
     } catch (err) {
       console.error(err);
-      alert('Failed to bookmark recipe.');
+      setBookmarkError(err.response?.data?.message || err.message);
     }
   };
 
@@ -139,6 +141,7 @@ export default function Bookmarks() {
   useEffect(() => {
     setServings(2);
     setCheckedIngredients({});
+    setBookmarkError('');
   }, [selectedRecipe]);
 
   // Check if selected recipe is already in bookmarks list
@@ -400,6 +403,12 @@ export default function Bookmarks() {
                           key={idx}
                           className="flex items-start gap-4 cursor-pointer group"
                         >
+                          <input 
+                            type="checkbox" 
+                            className="hidden" 
+                            checked={isChecked}
+                            onChange={() => toggleIngredient(idx)}
+                          />
                           <div className="mt-0.5">
                             <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors border ${isChecked ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 bg-white group-hover:border-emerald-400'}`}>
                               {isChecked && (
@@ -466,6 +475,44 @@ export default function Bookmarks() {
         </div>
 
       </div>
+
+      {/* Premium Upgrade Modal / Error Toast */}
+      {bookmarkError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl relative animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 border border-gray-100">
+            <button 
+              onClick={() => setBookmarkError('')}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-full transition"
+            >
+              ✕
+            </button>
+            <h3 className="text-xl font-extrabold text-gray-900 mb-2 tracking-tight">
+              {bookmarkError.includes('Pro') ? 'Premium Upgrade Required' : 'Action Failed'}
+            </h3>
+            <p className="text-sm text-gray-500 font-medium mb-6 leading-relaxed">
+              {bookmarkError.includes('Pro') 
+                ? 'You have reached the maximum limit of 5 bookmarks for free accounts. Upgrade to Pro to unlock unlimited recipe bookmarks and AI superpowers.'
+                : bookmarkError}
+            </p>
+            {bookmarkError.includes('Pro') ? (
+              <Link
+                to="/subscription"
+                className="w-full bg-gradient-to-r from-[#10B981] to-[#006c49] hover:from-[#059669] hover:to-[#004d34] text-white text-sm font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm shadow-[#10B981]/25 group hover:scale-[1.02]"
+              >
+                <Crown size={18} className="text-yellow-300 group-hover:rotate-12 transition-transform" />
+                <span>Upgrade to Pro</span>
+              </Link>
+            ) : (
+              <button
+                onClick={() => setBookmarkError('')}
+                className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3.5 rounded-xl transition-all"
+              >
+                Dismiss
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
