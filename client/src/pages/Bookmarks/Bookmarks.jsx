@@ -400,6 +400,12 @@ export default function Bookmarks() {
                           key={idx}
                           className="flex items-start gap-4 cursor-pointer group"
                         >
+                          <input 
+                            type="checkbox" 
+                            className="hidden" 
+                            checked={isChecked}
+                            onChange={() => toggleIngredient(idx)}
+                          />
                           <div className="mt-0.5">
                             <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors border ${isChecked ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 bg-white group-hover:border-emerald-400'}`}>
                               {isChecked && (

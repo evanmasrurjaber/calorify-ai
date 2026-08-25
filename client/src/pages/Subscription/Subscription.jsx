@@ -167,7 +167,7 @@ export default function Subscription() {
           <h3 className="text-2xl font-bold mb-2 text-white">Pro Plan</h3>
           <p className="text-emerald-100 text-sm mb-6 font-medium">Unlock the AI superpowers</p>
           <div className="mb-8">
-            <span className="text-5xl font-black text-white">৳500</span>
+            <span className="text-5xl font-black text-white">৳99</span>
             <span className="text-emerald-200 font-bold">/month</span>
           </div>
           <ul className="space-y-4 mb-10 flex-1">

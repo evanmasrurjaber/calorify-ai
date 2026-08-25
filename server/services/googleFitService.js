@@ -173,6 +173,7 @@ const fetchTodayCaloriesBurned = async (freshAccessToken) => {
 
     for (const p of points) {
       const val =
+        p.activeEnergyBurned?.kcalSum ??
         p['active-energy-burned']?.energySum?.kcal ??
         p.energySum?.kcal ??
         p.value?.kcal ??

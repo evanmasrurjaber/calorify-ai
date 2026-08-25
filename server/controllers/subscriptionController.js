@@ -38,7 +38,7 @@ const initiatePayment = async (req, res) => {
       mode: '0011',
       payerReference: ' ',
       callbackURL: `http://localhost:5173/subscription`, 
-      amount: '500',
+      amount: '99',
       currency: 'BDT',
       intent: 'sale',
       merchantInvoiceNumber: invoiceNumber
