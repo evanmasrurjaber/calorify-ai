@@ -15,6 +15,7 @@ import Wearable from './pages/Wearable/Wearable';
 import Challenges from './pages/Challenges/Challenges';
 import ShoppingList from './pages/ShoppingList/ShoppingList';
 import MedicalReport from './pages/MedicalReport/MedicalReport';
+import MonthlyReport from './pages/MonthlyReport/MonthlyReport';
 import Bookmarks from './pages/Bookmarks/Bookmarks';
 import Subscription from './pages/Subscription/Subscription';
 import Profile from './pages/Profile/Profile';
@@ -52,6 +53,8 @@ export default function App() {
           <Route path="/wearable" element={<ProtectedRoute><Layout><Wearable /></Layout></ProtectedRoute>} />
           <Route path="/challenges" element={<ProtectedRoute><Layout><Challenges /></Layout></ProtectedRoute>} />
           <Route path="/shopping-list" element={<ProtectedRoute><Layout><ShoppingList /></Layout></ProtectedRoute>} />
+          <Route path="/monthly-report" element={<ProtectedRoute><Layout><MonthlyReport /></Layout></ProtectedRoute>} />
+          <Route path="/health-report" element={<Navigate to="/monthly-report" replace />} />
           <Route path="/medical-report" element={<ProtectedRoute><Layout><MedicalReport /></Layout></ProtectedRoute>} />
           <Route path="/bookmarks" element={<ProtectedRoute><Layout><Bookmarks /></Layout></ProtectedRoute>} />
           <Route path="/subscription" element={<ProtectedRoute><Layout><Subscription /></Layout></ProtectedRoute>} />

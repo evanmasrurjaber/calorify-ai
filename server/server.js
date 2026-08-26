@@ -18,6 +18,7 @@ const bookmarkRoutes = require('./routes/bookmarkRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const wearableRoutes = require('./routes/wearableRoutes');
+const healthReportRoutes = require('./routes/healthReportRoutes');
 
 connectDB();
 
@@ -41,6 +42,8 @@ app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/wearable', wearableRoutes);
+app.use('/api/reports', healthReportRoutes);
+app.use('/api/health-reports', healthReportRoutes);
 
 // Health check
 app.get('/', (req, res) => {

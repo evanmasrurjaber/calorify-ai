@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   Watch,
   RefreshCw,
@@ -15,7 +15,8 @@ import {
   ArrowRight,
   Info,
   CheckCircle,
-  Target
+  Target,
+  FileText
 } from 'lucide-react';
 import {
   getWearableStatus,
@@ -584,16 +585,28 @@ export default function Wearable() {
             
             {/* Header & Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
-              <h2 className="text-xl font-bold text-[#0F172A]">Historical Data</h2>
-              <select 
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block p-2.5"
-              >
-                {availableMonths.map(m => (
-                  <option key={m} value={m}>{formatMonthLabel(m)}</option>
-                ))}
-              </select>
+              <div>
+                <h2 className="text-xl font-bold text-[#0F172A]">Historical Data</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Monthly weight & calorie tracking</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <select 
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block p-2.5"
+                >
+                  {availableMonths.map(m => (
+                    <option key={m} value={m}>{formatMonthLabel(m)}</option>
+                  ))}
+                </select>
+                <Link
+                  to="/monthly-report"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs border border-emerald-200 transition shadow-xs"
+                >
+                  <FileText size={15} />
+                  <span>Full Report</span>
+                </Link>
+              </div>
             </div>
 
             {/* Weight Journey Chart */}

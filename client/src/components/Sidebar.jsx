@@ -9,6 +9,7 @@ import {
   CalendarDays,
   ShoppingCart,
   BookmarkCheck,
+  FileText,
   User,
   Sparkles,
   LogOut,
@@ -23,6 +24,7 @@ export default function Sidebar() {
   const userMenuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Progress & Wearables', path: '/wearable', icon: TrendingUp },
+    { name: 'Monthly Report', path: '/monthly-report', icon: FileText },
     { name: 'AI Food Scanner', path: '/meal-log', icon: Camera },
     { name: 'Diet Planner', path: '/diet-plan', icon: CalendarDays },
     { name: 'Shopping List', path: '/shopping-list', icon: ShoppingCart },

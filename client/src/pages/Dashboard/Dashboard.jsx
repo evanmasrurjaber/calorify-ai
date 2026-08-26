@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getActiveDietPlan } from '../../services/dietPlanService';
-import { TrendingUp, Scale, Target, Activity, Zap, Flame, Utensils, Star, Settings } from 'lucide-react';
+import { TrendingUp, Scale, Target, Activity, Zap, Flame, Utensils, Star, Settings, FileText } from 'lucide-react';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -201,20 +201,20 @@ export default function Dashboard() {
         <div className="bg-white border border-[#e1e2e8] rounded-3xl p-6 shadow-sm">
           <h3 className="text-[#565e74] text-xs font-bold uppercase tracking-wider mb-4">Quick Navigation</h3>
           <div className="grid grid-cols-2 gap-3">
-            <Link to="/diet-plan" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 p-4 rounded-2xl text-center transition group">
-              <Utensils size={24} className="mx-auto text-gray-400 group-hover:text-emerald-500 transition mb-2" />
+            <Link to="/diet-plan" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 p-3.5 rounded-2xl text-center transition group">
+              <Utensils size={22} className="mx-auto text-gray-400 group-hover:text-emerald-500 transition mb-1.5" />
               <span className="text-xs text-gray-700 font-bold">Diet Plan</span>
             </Link>
-            <Link to="/profile" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 p-4 rounded-2xl text-center transition group">
-              <Settings size={24} className="mx-auto text-gray-400 group-hover:text-emerald-500 transition mb-2" />
-              <span className="text-xs text-gray-700 font-bold">Settings</span>
+            <Link to="/monthly-report" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 p-3.5 rounded-2xl text-center transition group">
+              <FileText size={22} className="mx-auto text-emerald-500 group-hover:text-emerald-600 transition mb-1.5" />
+              <span className="text-xs text-gray-700 font-bold">Health Report</span>
             </Link>
-            <Link to="/meal-log" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 p-4 rounded-2xl text-center transition group">
-              <TrendingUp size={24} className="mx-auto text-gray-400 group-hover:text-emerald-500 transition mb-2" />
+            <Link to="/meal-log" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 p-3.5 rounded-2xl text-center transition group">
+              <TrendingUp size={22} className="mx-auto text-gray-400 group-hover:text-emerald-500 transition mb-1.5" />
               <span className="text-xs text-gray-700 font-bold">Meal Logs</span>
             </Link>
-            <Link to="/subscription" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 p-4 rounded-2xl text-center transition group">
-              <Star size={24} className="mx-auto text-amber-400 group-hover:text-amber-500 transition mb-2" />
+            <Link to="/subscription" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 p-3.5 rounded-2xl text-center transition group">
+              <Star size={22} className="mx-auto text-amber-400 group-hover:text-amber-500 transition mb-1.5" />
               <span className="text-xs text-gray-700 font-bold">Go Premium</span>
             </Link>
           </div>
