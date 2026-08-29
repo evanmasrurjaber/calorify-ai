@@ -19,6 +19,9 @@ import {
   Droplets,
   Apple,
   ShoppingBag,
+  ShoppingCart,
+  ExternalLink,
+  Store,
 } from 'lucide-react';
 import BgShader from '../../components/BgShader';
 import {
@@ -26,6 +29,10 @@ import {
   clearShoppingListCache,
   toggleCheckedItem,
   clearAllChecked,
+  MARKETPLACE_PLATFORMS,
+  buildMarketplaceUrl,
+  getStoredMarketplace,
+  setStoredMarketplace,
 } from '../../services/shoppingListService';
 
 // ─── Category icon & colour configuration ─────────────────────────────────────
@@ -104,13 +111,14 @@ function SkeletonLoader() {
 }
 
 export default function ShoppingList() {
-  const [data, setData]               = useState(null);   // { upToDate, planId, checkedItems, categories }
-  const [loading, setLoading]         = useState(true);
-  const [refreshing, setRefreshing]   = useState(false);
-  const [error, setError]             = useState('');
-  const [toggling, setToggling]       = useState({});     // optimistic lock per item key
-  const [collapsed, setCollapsed]     = useState({});
-  const [clearingAll, setClearingAll] = useState(false);
+  const [data, setData]                       = useState(null);   // { upToDate, planId, checkedItems, categories }
+  const [loading, setLoading]                 = useState(true);
+  const [refreshing, setRefreshing]           = useState(false);
+  const [error, setError]                     = useState('');
+  const [toggling, setToggling]               = useState({});     // optimistic lock per item key
+  const [collapsed, setCollapsed]             = useState({});
+  const [clearingAll, setClearingAll]         = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState(getStoredMarketplace); // Online Marketplace dropdown selection
 
   // Local checked set — mirrors DB, updated optimistically
   const [localChecked, setLocalChecked] = useState(new Set());
@@ -120,10 +128,20 @@ export default function ShoppingList() {
     if (data?.checkedItems) setLocalChecked(new Set(data.checkedItems));
   }, [data]);
 
+  // ── Handle Marketplace Platform Dropdown change ──
+  const handlePlatformChange = (platform) => {
+    setSelectedPlatform(platform);
+    setStoredMarketplace(platform);
+  };
+
   // ── Fetch (or auto-generate) the shopping list ──
   const fetchList = useCallback(async (bustCache = false) => {
     try {
-      bustCache ? setRefreshing(true) : setLoading(true);
+      if (bustCache) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError('');
       if (bustCache) await clearShoppingListCache();
       const { data: res } = await getShoppingList();
@@ -144,7 +162,11 @@ export default function ShoppingList() {
 
     setLocalChecked((prev) => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
       return next;
     });
     setToggling((prev) => ({ ...prev, [key]: true }));
@@ -157,7 +179,11 @@ export default function ShoppingList() {
       // Revert on failure
       setLocalChecked((prev) => {
         const next = new Set(prev);
-        next.has(key) ? next.delete(key) : next.add(key);
+        if (next.has(key)) {
+          next.delete(key);
+        } else {
+          next.add(key);
+        }
         return next;
       });
       console.error('Failed to toggle item:', err);
@@ -217,7 +243,7 @@ export default function ShoppingList() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Same WebGL shader as Diet Plan page */}
+      {/* WebGL shader background */}
       <BgShader />
 
       <div className="max-w-4xl mx-auto space-y-8 animate-fade-in-up">
@@ -236,6 +262,30 @@ export default function ShoppingList() {
             <p className="text-sm text-[#565e74] font-medium mt-1">
               All ingredients from your 7-day meal plan — deduplicated, consolidated, and grouped by category.
             </p>
+          </div>
+
+          {/* ── Marketplace Selection Dropdown (Module 3 Feature 2 — Member 2) ── */}
+          <div className="bg-white/95 border border-[#e1e2e8] rounded-2xl p-3 sm:p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center gap-2.5 shrink-0">
+            <div className="flex items-center gap-2 text-xs font-bold text-[#565e74]">
+              <Store size={16} className="text-[#10B981]" />
+              <span>Preferred Marketplace:</span>
+            </div>
+            <div className="relative min-w-[140px]">
+              <select
+                id="marketplace-select"
+                value={selectedPlatform}
+                onChange={(e) => handlePlatformChange(e.target.value)}
+                aria-label="Select preferred online marketplace"
+                className="w-full appearance-none bg-[#f8f9ff] hover:bg-[#f2f4ff] border border-[#e1e2e8] text-[#0F172A] font-bold text-xs sm:text-sm rounded-xl pl-3 pr-8 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 transition-all"
+              >
+                {MARKETPLACE_PLATFORMS.map((platform) => (
+                  <option key={platform.id} value={platform.name}>
+                    {platform.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#565e74] pointer-events-none" />
+            </div>
           </div>
         </div>
 
@@ -289,6 +339,42 @@ export default function ShoppingList() {
 
               {/* ── Left: Category Cards (8 cols) ── */}
               <div className="w-full order-2 lg:order-1 lg:col-span-8 flex flex-col gap-5">
+                {/* ── Marketplace Active Banner & Quick Switcher ── */}
+                <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-[#e1e2e8] p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#10B981]/10 border border-[#10B981]/20 text-[#006c49] flex items-center justify-center shrink-0">
+                      <ShoppingCart size={18} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-[#0F172A]">Online Marketplace:</span>
+                        <span className="text-xs font-extrabold text-[#006c49] bg-[#10B981]/10 border border-[#10B981]/20 px-2 py-0.5 rounded-md">
+                          {selectedPlatform}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#565e74] mt-0.5">
+                        Click "Buy Online" on any item to open its direct search on {selectedPlatform} in a new tab.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 self-start sm:self-center shrink-0">
+                    {MARKETPLACE_PLATFORMS.map((platform) => (
+                      <button
+                        key={platform.id}
+                        type="button"
+                        onClick={() => handlePlatformChange(platform.name)}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                          selectedPlatform === platform.name
+                            ? 'bg-[#10B981] text-white border-[#10B981] shadow-xs'
+                            : 'bg-white text-[#565e74] border-[#e1e2e8] hover:border-[#10B981]/50 hover:text-[#0F172A]'
+                        }`}
+                      >
+                        {platform.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {data.categories?.map((category, catIdx) => {
                   const meta          = getCategoryMeta(category.name);
                   const IconComponent = meta.icon;
@@ -305,7 +391,7 @@ export default function ShoppingList() {
                       {/* Category Header */}
                       <button
                         onClick={() => toggleCollapse(category.name)}
-                        className="w-full flex items-center justify-between p-5 sm:p-6 hover:bg-[#f8f9ff] transition-colors group"
+                        className="w-full flex items-center justify-between p-5 sm:p-6 hover:bg-[#f8f9ff] transition-colors group cursor-pointer"
                       >
                         <div className="flex items-center gap-3.5">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 transition-transform group-hover:scale-105 ${meta.color}`}>
@@ -338,38 +424,62 @@ export default function ShoppingList() {
                             const key       = `${category.name}|${item.name}`;
                             const isChecked = localChecked.has(key);
                             const isBusy    = !!toggling[key];
+                            const searchUrl = buildMarketplaceUrl(selectedPlatform, item.name);
 
                             return (
-                              <button
+                              <div
                                 key={key}
-                                onClick={() => handleToggle(key)}
-                                disabled={isBusy}
-                                className={`w-full flex items-center justify-between py-3.5 px-1 group/item transition-all duration-150 text-left ${
-                                  isBusy ? 'opacity-60 cursor-wait' : 'hover:opacity-90 cursor-pointer'
+                                className={`flex flex-col sm:flex-row sm:items-center justify-between py-3 px-2 rounded-xl transition-all duration-150 gap-2 sm:gap-4 ${
+                                  isChecked ? 'bg-[#10B981]/5' : 'hover:bg-[#f8f9ff]'
                                 }`}
                               >
-                                <div className="flex items-center gap-3">
-                                  <span className={`shrink-0 transition-colors ${isChecked ? 'text-[#10B981]' : 'text-[#c8cad4] group-hover/item:text-[#565e74]'}`}>
+                                {/* Checkbox + Item Name */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggle(key)}
+                                  disabled={isBusy}
+                                  className={`flex items-center gap-3 flex-1 text-left min-w-0 ${
+                                    isBusy ? 'opacity-60 cursor-wait' : 'cursor-pointer'
+                                  }`}
+                                >
+                                  <span className={`shrink-0 transition-colors ${isChecked ? 'text-[#10B981]' : 'text-[#c8cad4] hover:text-[#565e74]'}`}>
                                     {isChecked ? <CheckSquare size={20} /> : <Square size={20} />}
                                   </span>
-                                  <span className={`text-sm font-semibold transition-all ${
+                                  <span className={`text-sm font-semibold truncate transition-all ${
                                     isChecked
                                       ? 'text-[#a0aab8] line-through decoration-[#10B981]/50'
                                       : 'text-[#0F172A]'
                                   }`}>
                                     {item.name}
                                   </span>
-                                </div>
+                                </button>
 
-                                {/* Quantity badge */}
-                                <span className={`text-xs font-bold px-3 py-1 rounded-xl border transition-all ${
-                                  isChecked
-                                    ? 'bg-[#10B981]/10 border-[#10B981]/20 text-[#006c49]'
-                                    : 'bg-[#f8f9ff] border-[#e1e2e8] text-[#565e74]'
-                                }`}>
-                                  {item.quantity}
-                                </span>
-                              </button>
+                                {/* Actions: Quantity Badge & Buy Online Button */}
+                                <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 pl-8 sm:pl-0">
+                                  {/* Quantity badge */}
+                                  <span className={`text-xs font-bold px-3 py-1 rounded-xl border transition-all ${
+                                    isChecked
+                                      ? 'bg-[#10B981]/10 border-[#10B981]/20 text-[#006c49]'
+                                      : 'bg-[#f8f9ff] border-[#e1e2e8] text-[#565e74]'
+                                  }`}>
+                                    {item.quantity}
+                                  </span>
+
+                                  {/* Buy Online Button (String interpolation constructed URL opened in new tab) */}
+                                  <a
+                                    href={searchUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    title={`Search for "${item.name}" on ${selectedPlatform} (opens in new tab)`}
+                                    className="inline-flex items-center gap-1.5 bg-white hover:bg-[#006c49] text-[#006c49] hover:text-white border border-[#10B981]/35 hover:border-[#006c49] text-xs font-bold py-1.5 px-3 rounded-xl transition-all duration-150 shadow-2xs hover:shadow-xs hover:scale-[1.02] active:scale-95 group/btn"
+                                  >
+                                    <ShoppingCart size={13} className="shrink-0 text-[#10B981] group-hover/btn:text-white transition-colors" />
+                                    <span>Buy Online</span>
+                                    <ExternalLink size={11} className="shrink-0 opacity-70 group-hover/btn:opacity-100 transition-opacity" />
+                                  </a>
+                                </div>
+                              </div>
                             );
                           })}
                         </div>
@@ -440,12 +550,53 @@ export default function ShoppingList() {
                     ))}
                   </div>
 
+                  {/* ── Marketplace Integration Card (Module 3 Feature 2 — Member 2) ── */}
+                  <div className="p-4 bg-[#f8f9ff] border border-[#e1e2e8] rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Store size={16} className="text-[#10B981]" />
+                        <span className="text-xs font-bold text-[#0F172A]">Marketplace</span>
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-[#10B981]/15 text-[#006c49] px-2 py-0.5 rounded-md">
+                        {selectedPlatform}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#565e74] leading-relaxed">
+                      Select delivery provider to search and order ingredients with 1 click:
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {MARKETPLACE_PLATFORMS.map((platform) => (
+                        <button
+                          key={platform.id}
+                          type="button"
+                          onClick={() => handlePlatformChange(platform.name)}
+                          className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                            selectedPlatform === platform.name
+                              ? 'bg-[#10B981] text-white border-[#10B981] shadow-xs'
+                              : 'bg-white text-[#565e74] border-[#e1e2e8] hover:border-[#10B981]/50 hover:text-[#0F172A]'
+                          }`}
+                        >
+                          {platform.name}
+                        </button>
+                      ))}
+                    </div>
+                    <a
+                      href={selectedPlatform === 'Shopno' ? 'https://www.shwapno.com' : 'https://chaldal.com'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2 px-3 bg-white border border-[#e1e2e8] text-[#565e74] hover:text-[#006c49] hover:border-[#10B981]/40 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs group/store"
+                    >
+                      <span>Visit {selectedPlatform} Store</span>
+                      <ExternalLink size={12} className="group-hover/store:translate-x-0.5 transition-transform" />
+                    </a>
+                  </div>
+
                   {/* Uncheck All */}
                   {checkedCount > 0 && (
                     <button
                       onClick={handleClearAll}
                       disabled={clearingAll}
-                      className="w-full py-3 px-4 rounded-2xl border border-[#e1e2e8] text-[#565e74] hover:text-[#0F172A] hover:bg-[#f8f9ff] font-bold text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                      className="w-full py-3 px-4 rounded-2xl border border-[#e1e2e8] text-[#565e74] hover:text-[#0F172A] hover:bg-[#f8f9ff] font-bold text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
                     >
                       <Square size={14} />
                       {clearingAll ? 'Clearing...' : 'Uncheck All Items'}
@@ -477,3 +628,4 @@ export default function ShoppingList() {
     </div>
   );
 }
+
