@@ -36,6 +36,38 @@ const sendBadgeUnlockEmail = async (userEmail, userName, badgeLabel) => {
   }
 };
 
+// Helper to check and send all completed challenges email
+const checkAndSendAllCompletedEmail = async (userId, userEmail, userName) => {
+  try {
+    const { start, end } = getStartAndEndOfToday();
+    const todayChallenges = await Challenge.find({
+      user: userId,
+      date: { $gte: start, $lte: end },
+    });
+    if (todayChallenges.length > 0 && todayChallenges.every((c) => c.completed)) {
+      const subject = '🌟 Congratulations! You completed ALL your Daily Challenges today!';
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+          <h2 style="color: #10b981; text-align: center; margin-bottom: 20px;">🏆 All Daily Challenges Completed!</h2>
+          <p style="font-size: 16px; color: #334155; line-height: 1.6;">Hi <strong>${userName}</strong>,</p>
+          <p style="font-size: 16px; color: #334155; line-height: 1.6;">Outstanding dedication! You have successfully completed <strong>all 5 of your daily healthy habit challenges</strong> on Calorify today.</p>
+          <div style="text-align: center; margin: 25px 0; background-color: #f8fafc; padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0;">
+            <span style="font-size: 48px;">🌟</span>
+            <h3 style="margin-top: 10px; margin-bottom: 5px; color: #0f172a; font-size: 18px; font-weight: 800;">100% Daily Goals Achieved</h3>
+            <p style="color: #64748b; font-size: 13px; margin: 0;">Habit Streak Active & Points Boosted!</p>
+          </div>
+          <p style="font-size: 14px; color: #64748b; line-height: 1.6; text-align: center;">Your consistency is paving the way to a healthier and more energetic lifestyle. Keep up this winning streak tomorrow!</p>
+          <p style="font-size: 16px; color: #334155; line-height: 1.6; margin-top: 25px;">Warm regards,<br/><strong>The Calorify Team</strong></p>
+        </div>
+      `;
+      await sendEmail(userEmail, subject, html);
+      console.log(`[AllChallengesEmail]: Sent to ${userEmail}`);
+    }
+  } catch (err) {
+    console.error('[AllChallengesEmail Error]:', err.message);
+  }
+};
+
 // @route GET /api/challenges/today
 const getTodayChallenges = async (req, res) => {
   try {
@@ -63,7 +95,7 @@ const getTodayChallenges = async (req, res) => {
           user: req.user.id,
           date: new Date(),
           title: "Drink 2L Water",
-          description: "Keep hydrated throughout the day. Log in increments of 250ml.",
+          description: "Keep hydrated throughout the day. Log in increments or custom amount.",
           pointsReward: 50,
           target: 2000,
           current: 0,
@@ -75,7 +107,7 @@ const getTodayChallenges = async (req, res) => {
           user: req.user.id,
           date: new Date(),
           title: "Walk 5000 Steps",
-          description: "Stay active! Log your steps in increments of 1000.",
+          description: "Stay active! Log your steps in increments or custom amount.",
           pointsReward: 100,
           target: 5000,
           current: 0,
@@ -87,7 +119,7 @@ const getTodayChallenges = async (req, res) => {
           user: req.user.id,
           date: new Date(),
           title: "sleep 8 hrs",
-          description: "Ensure your body recovers well. Log in increments of 1 hour.",
+          description: "Ensure your body recovers well. Log in increments or custom amount.",
           pointsReward: 80,
           target: 8,
           current: 0,
@@ -99,7 +131,7 @@ const getTodayChallenges = async (req, res) => {
           user: req.user.id,
           date: new Date(),
           title: "meditate 10 mins a day",
-          description: "Take some time for mindfulness. Log in increments of 5 minutes.",
+          description: "Take some time for mindfulness. Log in increments or custom amount.",
           pointsReward: 40,
           target: 10,
           current: 0,
@@ -140,8 +172,13 @@ const logChallengeProgress = async (req, res) => {
       return res.status(400).json({ message: 'Challenge already completed' });
     }
 
-    // Increment current by step
-    challenge.current = Math.min(challenge.current + challenge.step, challenge.target);
+    // Support custom manual input amount or default step
+    const increment =
+      req.body.amount && Number(req.body.amount) > 0
+        ? Number(req.body.amount)
+        : challenge.step;
+
+    challenge.current = Math.min(challenge.current + increment, challenge.target);
 
     let newlyCompleted = false;
     if (challenge.current >= challenge.target) {
@@ -158,8 +195,7 @@ const logChallengeProgress = async (req, res) => {
     if (newlyCompleted) {
       pointsAwarded = challenge.pointsReward;
       const user = await User.findById(req.user.id);
-      
-      // Initialize unlockedBadges array if not present
+
       if (!user.unlockedBadges) {
         user.unlockedBadges = [];
       }
@@ -173,12 +209,12 @@ const logChallengeProgress = async (req, res) => {
         unlockedBadge = badgeKey;
       }
 
-      // Check tier-based milestones
+      // Check tier-based milestones (lowered to accessible targets)
       const currentPoints = user.points;
       const milestones = [
-        { badge: 'healthy_starter', minPoints: 200 },
-        { badge: 'nutrition_master', minPoints: 600 },
-        { badge: 'diet_legend', minPoints: 1200 }
+        { badge: 'healthy_starter', minPoints: 100 },
+        { badge: 'nutrition_master', minPoints: 200 },
+        { badge: 'diet_legend', minPoints: 330 },
       ];
 
       for (const m of milestones) {
@@ -196,11 +232,17 @@ const logChallengeProgress = async (req, res) => {
       // Send badge unlock email notification
       const emailBadgeKey = challenge.badgeKey || unlockedBadge;
       if (emailBadgeKey) {
-        const badgeLabel = emailBadgeKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        sendBadgeUnlockEmail(user.email, user.name, badgeLabel).catch(err => {
+        const badgeLabel = emailBadgeKey
+          .split('_')
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ');
+        sendBadgeUnlockEmail(user.email, user.name, badgeLabel).catch((err) => {
           console.error('Failed to send email:', err.message);
         });
       }
+
+      // Check if ALL challenges for today are now completed
+      checkAndSendAllCompletedEmail(user._id, user.email, user.name);
     }
 
     res.json({ challenge, pointsAwarded, unlockedBadge });
@@ -237,9 +279,9 @@ const completeChallenge = async (req, res) => {
 
     // Check milestones
     const milestones = [
-      { badge: 'healthy_starter', minPoints: 200 },
-      { badge: 'nutrition_master', minPoints: 600 },
-      { badge: 'diet_legend', minPoints: 1200 }
+      { badge: 'healthy_starter', minPoints: 100 },
+      { badge: 'nutrition_master', minPoints: 200 },
+      { badge: 'diet_legend', minPoints: 330 },
     ];
     for (const m of milestones) {
       if (user.points >= m.minPoints && !user.unlockedBadges.includes(m.badge)) {
@@ -254,11 +296,17 @@ const completeChallenge = async (req, res) => {
     // Send badge unlock email notification
     const emailBadgeKey = challenge.badgeKey || unlockedBadge;
     if (emailBadgeKey) {
-      const badgeLabel = emailBadgeKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      sendBadgeUnlockEmail(user.email, user.name, badgeLabel).catch(err => {
+      const badgeLabel = emailBadgeKey
+        .split('_')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+      sendBadgeUnlockEmail(user.email, user.name, badgeLabel).catch((err) => {
         console.error('Failed to send email:', err.message);
       });
     }
+
+    // Check if ALL challenges for today are now completed
+    checkAndSendAllCompletedEmail(user._id, user.email, user.name);
 
     res.json({ challenge, pointsAwarded: challenge.pointsReward, unlockedBadge });
   } catch (error) {
@@ -271,5 +319,6 @@ module.exports = {
   logChallengeProgress,
   completeChallenge,
   sendBadgeUnlockEmail,
+  checkAndSendAllCompletedEmail,
   getStartAndEndOfToday,
 };

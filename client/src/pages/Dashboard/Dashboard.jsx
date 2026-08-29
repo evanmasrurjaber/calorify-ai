@@ -17,7 +17,14 @@ import {
   Sparkles,
   Plus,
   Award,
-  FileText
+  FileText,
+  Sunrise,
+  Sun,
+  Moon,
+  Apple,
+  Info,
+  TrendingDown,
+  Dumbbell,
 } from 'lucide-react';
 
 // Helper: Get local YYYY-MM-DD string without UTC timezone offset errors
@@ -44,9 +51,9 @@ export default function Dashboard() {
 
   const getGoalLabel = (goal) => {
     switch (goal) {
-      case 'lose_weight': return 'Lose Weight 📉';
-      case 'gain_muscle': return 'Gain Muscle 💪';
-      default: return 'Maintain Weight ⚖️';
+      case 'lose_weight': return 'Lose Weight';
+      case 'gain_muscle': return 'Gain Muscle';
+      default: return 'Maintain Weight';
     }
   };
 
@@ -144,11 +151,11 @@ export default function Dashboard() {
   const targetCarbs = 250;
   const targetFat = 67;
 
-  const mealIcons = {
-    breakfast: '🌅',
-    lunch: '☀️',
-    snacks: '🍎',
-    dinner: '🌙',
+  const mealIconComponents = {
+    breakfast: { Icon: Sunrise, color: 'bg-amber-50 text-amber-600 border-amber-200' },
+    lunch:     { Icon: Sun,     color: 'bg-orange-50 text-orange-600 border-orange-200' },
+    snacks:    { Icon: Apple,   color: 'bg-rose-50 text-rose-600 border-rose-200' },
+    dinner:    { Icon: Moon,    color: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
   };
 
   return (
@@ -158,7 +165,7 @@ export default function Dashboard() {
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <span className="p-3 bg-emerald-50 text-emerald-700 rounded-2xl">
-              <span className="text-2xl">👋</span>
+              <Sparkles size={24} />
             </span>
             <div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
@@ -170,132 +177,136 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Date Calendar Row */}
-      <div className="bg-white border border-gray-150 rounded-3xl p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-3 px-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#565e74] flex items-center gap-1.5">
-            <Calendar size={14} className="text-emerald-500" /> Meal Log Calendar
-          </span>
-          <span className="text-xs font-semibold text-gray-400">
-            Select a date to view or update intake
-          </span>
-        </div>
-        
-        {/* Calendar Horizontal Selector */}
-        <div className="flex items-center justify-between gap-2 overflow-x-auto py-1 scrollbar-none">
-          {calendarDays.map((day) => {
-            const isSelected = selectedDate === day.dateStr;
-            return (
-              <button
-                key={day.dateStr}
-                onClick={() => setSelectedDate(day.dateStr)}
-                className={`flex-1 min-w-[60px] py-3 rounded-2xl text-center border transition-all duration-200 ${
-                  isSelected
-                    ? 'bg-emerald-600 border-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20 scale-[1.02]'
-                    : 'bg-gray-50 border-gray-100 hover:border-gray-300 hover:bg-gray-100 text-gray-600'
-                }`}
-              >
-                <p className="text-[10px] uppercase font-bold tracking-wider opacity-80">{day.dayName}</p>
-                <p className="text-lg font-black mt-0.5">{day.dayNum}</p>
-                {day.isToday && (
-                  <span className={`block w-1.5 h-1.5 rounded-full mx-auto mt-1 ${isSelected ? 'bg-white' : 'bg-emerald-500'}`} />
-                )}
-              </button>
-            );
-          })}
+        <div className="flex items-center gap-3">
+          <Link
+            to="/diet-plan"
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all shadow-md shadow-emerald-500/20 active:scale-95"
+          >
+            <Zap size={16} />
+            Generate Diet Plan
+          </Link>
+          <Link
+            to={`/meal-log?date=${selectedDate}`}
+            className="flex items-center gap-2 border border-gray-200 hover:bg-gray-50 text-gray-700 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm transition active:scale-95"
+          >
+            <Plus size={16} />
+            Log Meal
+          </Link>
         </div>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Grid Layout: 2 Columns on Desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* LEFT COLUMN: Daily Intake Tracker & Weekly Summary (2/3 width) */}
+        {/* LEFT COLUMN: Daily Intake Tracker (Gauge + Macros + Weekly Aggregate) - 2/3 width */}
         <div className="lg:col-span-2 space-y-6">
-          
-          {/* Daily Intake Dashboard */}
+
+          {/* Daily Tracker Card */}
           <div className="bg-white border border-gray-150 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+            
+            {/* Header: Title + Date Filter Navigation */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-1">
+                <span className="text-[10px] font-black uppercase text-emerald-600 tracking-wider bg-emerald-50 px-3 py-1 rounded-md">
                   Daily Intake Tracker
-                </h3>
-                <h2 className="text-xl font-bold text-gray-900">
-                  {new Date(selectedDate.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </span>
+                <h2 className="text-xl font-extrabold text-gray-900 mt-2">
+                  Calorie & Macro Progress
                 </h2>
               </div>
-              <Link
-                to={`/meal-log?date=${selectedDate}`}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-4 py-2.5 rounded-xl transition"
-              >
-                <Plus size={14} /> Log Meals
-              </Link>
+
+              {/* Date Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+                {calendarDays.map((item) => {
+                  const isSelected = selectedDate === item.dateStr;
+                  return (
+                    <button
+                      key={item.dateStr}
+                      onClick={() => setSelectedDate(item.dateStr)}
+                      className={`flex flex-col items-center justify-center min-w-[48px] py-1.5 px-2 rounded-2xl border transition-all text-center ${
+                        isSelected
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20 font-bold'
+                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className={`text-[9px] uppercase font-bold ${isSelected ? 'text-emerald-100' : 'text-gray-400'}`}>
+                        {item.isToday ? 'Today' : item.dayName}
+                      </span>
+                      <span className="text-xs font-black mt-0.5">{item.dayNum}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {trackerLoading ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
-                <div className="animate-spin rounded-full h-8 w-8 border-3 border-emerald-500 border-t-transparent" />
-                <p className="text-sm text-gray-400 font-semibold">Fetching intake details...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-500 border-t-transparent" />
+                <span className="text-xs font-bold text-gray-400">Loading daily intake...</span>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center pt-2">
                 
-                {/* SVG circular calories gauge (5 columns) */}
-                <div className="md:col-span-5 flex flex-col items-center justify-center p-4 border border-gray-50 bg-gray-50/30 rounded-3xl">
-                  <div className="relative w-40 h-40">
+                {/* Visual Gauge Column */}
+                <div className="flex flex-col items-center justify-center relative">
+                  <div className="relative w-44 h-44 flex items-center justify-center">
                     <svg className="w-full h-full transform -rotate-90" viewBox="0 0 140 140">
-                      {/* Background circle */}
+                      {/* Background track circle */}
                       <circle
-                        className="text-gray-100"
-                        strokeWidth={strokeWidth}
-                        stroke="currentColor"
-                        fill="transparent"
-                        r={radius}
                         cx="70"
                         cy="70"
+                        r={radius}
+                        stroke="#f1f5f9"
+                        strokeWidth={strokeWidth}
+                        fill="transparent"
                       />
-                      {/* Indicator circle */}
+                      {/* Foreground animated progress circle */}
                       <circle
-                        className="text-emerald-500 transition-all duration-700"
+                        cx="70"
+                        cy="70"
+                        r={radius}
+                        stroke={isOverTarget ? '#f43f5e' : '#10b981'}
                         strokeWidth={strokeWidth}
                         strokeDasharray={circumference}
                         strokeDashoffset={strokeDashoffset}
                         strokeLinecap="round"
-                        stroke="currentColor"
                         fill="transparent"
-                        r={radius}
-                        cx="70"
-                        cy="70"
+                        className="transition-all duration-700 ease-out"
                       />
                     </svg>
-                    {/* Centered calorie text */}
+
+                    {/* Centered Gauge Content */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                      <span className="text-2xl font-black text-gray-900 tabular-nums">
-                        {consumedCalories.toLocaleString()}
+                      <span className="text-2xl font-black text-gray-900 leading-none">
+                        {consumedCalories}
                       </span>
-                      <span className="text-[10px] text-gray-400 uppercase font-black tracking-wider mt-0.5">
-                        kcal consumed
+                      <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mt-1">
+                        / {targetCalories} kcal
+                      </span>
+                      <span className={`text-[10px] font-black uppercase mt-1 px-2 py-0.5 rounded-full ${
+                        isOverTarget ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-800'
+                      }`}>
+                        {isOverTarget ? 'Over Target' : `${calPercent}% of Goal`}
                       </span>
                     </div>
                   </div>
-                  <div className="text-center mt-3 space-y-0.5">
-                    {isOverTarget ? (
-                      <p className="text-xs font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-full">
-                        🚨 {Math.abs(targetCalories - consumedCalories)} kcal over target
-                      </p>
-                    ) : (
-                      <p className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">
-                        ⭐ {caloriesLeft.toLocaleString()} kcal left
-                      </p>
-                    )}
+
+                  <div className="mt-4 text-center">
+                    <p className="text-xs font-bold text-gray-500">
+                      {isOverTarget
+                        ? `Exceeded daily target by ${consumedCalories - targetCalories} kcal`
+                        : `${caloriesLeft} kcal remaining for today`}
+                    </p>
                   </div>
                 </div>
 
-                {/* Macro progress bars (7 columns) */}
-                <div className="md:col-span-7 space-y-5 p-2">
-                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400">Macronutrients Breakdown</h4>
-                  
+                {/* Macronutrient Breakdown Bars */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider">
+                    Macronutrient Distribution
+                  </h3>
+
                   {/* Protein */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs font-bold">
@@ -378,8 +389,9 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <p className="text-[10px] font-medium text-gray-400 leading-relaxed italic border-t border-gray-100 pt-4">
-              ℹ️ This Monday-Sunday summary is automatically stored whenever a meal is added or removed, ready for the monthly health report.
+            <p className="text-[10px] font-medium text-gray-400 leading-relaxed italic border-t border-gray-100 pt-4 flex items-center gap-1.5">
+              <Info size={14} className="text-emerald-600 shrink-0" />
+              This Monday-Sunday summary is automatically stored whenever a meal is added or removed, ready for the monthly health report.
             </p>
           </div>
 
@@ -414,23 +426,33 @@ export default function Dashboard() {
               </div>
             ) : todayDietPlan ? (
               <div className="space-y-3">
-                {todayDietPlan.meals.map((meal, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-gray-50 border border-gray-100 p-3 rounded-2xl flex items-center justify-between gap-2"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-lg shrink-0">{mealIcons[meal.meal] || '🍽️'}</span>
-                      <div className="min-w-0">
-                        <span className="text-[9px] uppercase font-bold text-emerald-600 block">{meal.meal}</span>
-                        <p className="text-xs font-bold text-gray-800 truncate leading-tight mt-0.5">{meal.name}</p>
+                {todayDietPlan.meals.map((meal, idx) => {
+                  const iconConfig = mealIconComponents[meal.meal?.toLowerCase()] || {
+                    Icon: Utensils,
+                    color: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+                  };
+                  const MealIcon = iconConfig.Icon;
+
+                  return (
+                    <div
+                      key={idx}
+                      className="bg-gray-50 border border-gray-100 p-3 rounded-2xl flex items-center justify-between gap-2"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className={`p-2 rounded-xl border shrink-0 ${iconConfig.color}`}>
+                          <MealIcon size={16} />
+                        </span>
+                        <div className="min-w-0">
+                          <span className="text-[9px] uppercase font-bold text-emerald-600 block">{meal.meal}</span>
+                          <p className="text-xs font-bold text-gray-800 truncate leading-tight mt-0.5">{meal.name}</p>
+                        </div>
                       </div>
+                      <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md shrink-0 border border-orange-150">
+                        {meal.calories} kcal
+                      </span>
                     </div>
-                    <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md shrink-0">
-                      {meal.calories} kcal
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-6 text-center bg-emerald-50/20 rounded-2xl border border-emerald-100 border-dashed">
@@ -512,7 +534,9 @@ export default function Dashboard() {
           {/* Habit Streak Promo Panel */}
           <div className="bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-100 rounded-3xl p-5 shadow-sm space-y-4">
             <div className="flex items-center gap-3">
-              <span className="text-3xl">🔥</span>
+              <span className="p-2 bg-amber-50 border border-amber-200 text-amber-500 rounded-2xl">
+                <Flame size={24} />
+              </span>
               <div>
                 <h4 className="text-sm font-extrabold text-[#0F172A]">Complete Challenges</h4>
                 <p className="text-[11px] font-medium text-[#565e74]">
@@ -531,6 +555,7 @@ export default function Dashboard() {
         </div>
 
       </div>
+
     </div>
   );
 }
