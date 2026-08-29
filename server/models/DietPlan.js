@@ -22,6 +22,12 @@ const dietPlanSchema = new mongoose.Schema(
     weekStartDate: { type: Date },
     plan: [dayPlanSchema],
     isActive: { type: Boolean, default: true },
+    // Cached shopping list JSON string (from single Gemini batch call)
+    shoppingList: { type: String, default: null },
+    // True = list matches current plan; False = plan was updated since last list generation
+    shoppingListUpToDate: { type: Boolean, default: false },
+    // DB-persisted item check-off state: array of "CategoryName|itemName" keys
+    checkedItems: { type: [String], default: [] },
   },
   { timestamps: true }
 );

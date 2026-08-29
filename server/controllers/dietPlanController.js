@@ -3,7 +3,8 @@ const User = require('../models/User');
 const MedicalReport = require('../models/MedicalReport');
 const Progress = require('../models/Progress');
 const DishImage = require('../models/DishImage');
-const { generateText } = require('../services/geminiService');
+const { generateText, parseJSONResponse } = require('../services/geminiService');
+
 
 // ─── Helper: Generate a Pollinations AI food image URL ───────────────────────
 async function generateDishImageURL(dishName) {
@@ -437,8 +438,7 @@ const generateDietPlan = async (req, res) => {
 
     // 6. Call Gemini API and parse the JSON response
     const rawResponse = await generateText(prompt);
-    const cleanJsonStr = rawResponse.replace(/```json|```/g, '').trim();
-    const parsedPlan = JSON.parse(cleanJsonStr);
+    const parsedPlan = parseJSONResponse(rawResponse);
 
     // 7. Compute totalCalories per day
     const planDays = parsedPlan.map((dayData) => {
@@ -511,8 +511,7 @@ const regenerateDay = async (req, res) => {
     });
 
     const rawResponse = await generateText(prompt);
-    const cleanJsonStr = rawResponse.replace(/```json|```/g, '').trim();
-    const parsedDay = JSON.parse(cleanJsonStr);
+    const parsedDay = parseJSONResponse(rawResponse);
 
     // Update target day in the active plan
     targetDay.meals = parsedDay.meals;
@@ -520,6 +519,9 @@ const regenerateDay = async (req, res) => {
 
     plan.markModified('plan');
     await plan.save();
+
+    // Mark the shopping list as outdated (non-conflicting — runs after save)
+    await DietPlan.updateOne({ _id: plan._id }, { $set: { shoppingListUpToDate: false } });
 
     res.json(plan);
   } catch (error) {
@@ -582,8 +584,7 @@ const regenerateMeal = async (req, res) => {
     });
 
     const rawResponse = await generateText(prompt);
-    const cleanJsonStr = rawResponse.replace(/```json|```/g, '').trim();
-    const newMealData = JSON.parse(cleanJsonStr);
+    const newMealData = parseJSONResponse(rawResponse);
 
     targetMeal.name = newMealData.name;
     targetMeal.calories = newMealData.calories;
@@ -596,6 +597,9 @@ const regenerateMeal = async (req, res) => {
 
     plan.markModified('plan');
     await plan.save();
+
+    // Mark the shopping list as outdated (non-conflicting — runs after save)
+    await DietPlan.updateOne({ _id: plan._id }, { $set: { shoppingListUpToDate: false } });
 
     res.json(plan);
   } catch (error) {
@@ -670,8 +674,7 @@ Return ONLY valid raw JSON. Do not include markdown code block characters like \
 `;
 
     const rawResponse = await generateText(prompt);
-    const cleanJsonStr = rawResponse.replace(/```json|```/g, '').trim();
-    const parsedData = JSON.parse(cleanJsonStr);
+    const parsedData = parseJSONResponse(rawResponse);
 
     parsedData.image_url = await generateDishImageURL(targetMeal.name);
 
@@ -713,8 +716,7 @@ Return ONLY valid raw JSON. Do not include markdown code block characters like \
 `;
 
     const rawResponse = await generateText(prompt);
-    const cleanJsonStr = rawResponse.replace(/```json|```/g, '').trim();
-    const parsedData = JSON.parse(cleanJsonStr);
+    const parsedData = parseJSONResponse(rawResponse);
 
     parsedData.image_url = await generateDishImageURL(name);
 
