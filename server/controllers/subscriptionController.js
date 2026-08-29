@@ -31,13 +31,14 @@ const initiatePayment = async (req, res) => {
     const token = await getBkashToken();
     const invoiceNumber = 'Inv' + crypto.randomBytes(4).toString('hex');
     
-    const { BKASH_APP_KEY } = process.env;
+    const { BKASH_APP_KEY, CLIENT_URL } = process.env;
+    const clientUrl = CLIENT_URL || 'http://localhost:5173';
 
     // Create payment session
     const { data } = await axios.post(`${BKASH_BASE_URL}/create`, {
       mode: '0011',
       payerReference: ' ',
-      callbackURL: `http://localhost:5173/subscription`, 
+      callbackURL: `${clientUrl}/subscription`, 
       amount: '99',
       currency: 'BDT',
       intent: 'sale',
