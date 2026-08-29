@@ -483,12 +483,12 @@ export default function Profile() {
               </div>
               <div
                 className={`w-12 h-6 rounded-full flex items-center transition-colors duration-300 p-1 shadow-inner shrink-0 ${
-                  profile.notifications?.dailyMealReminder ? 'bg-emerald-500' : 'bg-gray-300'
+                  profile.notifications?.dailyMealReminder !== false ? 'bg-emerald-500' : 'bg-gray-300'
                 }`}
               >
                 <div
                   className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
-                    profile.notifications?.dailyMealReminder ? 'translate-x-6' : 'translate-x-0'
+                    profile.notifications?.dailyMealReminder !== false ? 'translate-x-6' : 'translate-x-0'
                   }`}
                 />
               </div>
@@ -501,16 +501,82 @@ export default function Profile() {
             >
               <div className="space-y-0.5">
                 <p className="text-sm font-bold text-gray-900">Weekly Diet Plan Resets</p>
-                <p className="text-xs text-gray-500">Get notified every week when your new personalized 7-day meal plan is ready.</p>
+                <p className="text-xs text-gray-500">Get notified when a new 7-day personalized meal plan is generated or ready for refresh.</p>
               </div>
               <div
                 className={`w-12 h-6 rounded-full flex items-center transition-colors duration-300 p-1 shadow-inner shrink-0 ${
-                  profile.notifications?.weeklyPlanReset ? 'bg-emerald-500' : 'bg-gray-300'
+                  profile.notifications?.weeklyPlanReset !== false ? 'bg-emerald-500' : 'bg-gray-300'
                 }`}
               >
                 <div
                   className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
-                    profile.notifications?.weeklyPlanReset ? 'translate-x-6' : 'translate-x-0'
+                    profile.notifications?.weeklyPlanReset !== false ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Toggle 3: New User Login Security Alerts */}
+            <div
+              onClick={() => handleNotificationToggle('loginAlerts')}
+              className="flex items-center justify-between p-4 bg-gray-50/70 hover:bg-gray-50 rounded-2xl border border-gray-150 cursor-pointer transition"
+            >
+              <div className="space-y-0.5">
+                <p className="text-sm font-bold text-gray-900">Login Security Alerts</p>
+                <p className="text-xs text-gray-500">Receive security notification emails whenever a successful login to your account occurs.</p>
+              </div>
+              <div
+                className={`w-12 h-6 rounded-full flex items-center transition-colors duration-300 p-1 shadow-inner shrink-0 ${
+                  profile.notifications?.loginAlerts !== false ? 'bg-emerald-500' : 'bg-gray-300'
+                }`}
+              >
+                <div
+                  className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
+                    profile.notifications?.loginAlerts !== false ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Toggle 4: Challenge & Badge Unlock Alerts */}
+            <div
+              onClick={() => handleNotificationToggle('challengeAlerts')}
+              className="flex items-center justify-between p-4 bg-gray-50/70 hover:bg-gray-50 rounded-2xl border border-gray-150 cursor-pointer transition"
+            >
+              <div className="space-y-0.5">
+                <p className="text-sm font-bold text-gray-900">Challenges & Badge Unlocks</p>
+                <p className="text-xs text-gray-500">Receive celebration emails when you unlock new health badges or complete daily challenges.</p>
+              </div>
+              <div
+                className={`w-12 h-6 rounded-full flex items-center transition-colors duration-300 p-1 shadow-inner shrink-0 ${
+                  profile.notifications?.challengeAlerts !== false ? 'bg-emerald-500' : 'bg-gray-300'
+                }`}
+              >
+                <div
+                  className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
+                    profile.notifications?.challengeAlerts !== false ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Toggle 5: Community Post & Suggestion Alerts */}
+            <div
+              onClick={() => handleNotificationToggle('communityAlerts')}
+              className="flex items-center justify-between p-4 bg-gray-50/70 hover:bg-gray-50 rounded-2xl border border-gray-150 cursor-pointer transition"
+            >
+              <div className="space-y-0.5">
+                <p className="text-sm font-bold text-gray-900">Community Activity Alerts</p>
+                <p className="text-xs text-gray-500">Receive email notifications on your first blog post and significant community interactions.</p>
+              </div>
+              <div
+                className={`w-12 h-6 rounded-full flex items-center transition-colors duration-300 p-1 shadow-inner shrink-0 ${
+                  profile.notifications?.communityAlerts !== false ? 'bg-emerald-500' : 'bg-gray-300'
+                }`}
+              >
+                <div
+                  className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
+                    profile.notifications?.communityAlerts !== false ? 'translate-x-6' : 'translate-x-0'
                   }`}
                 />
               </div>

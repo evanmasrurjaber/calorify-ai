@@ -40,6 +40,9 @@ const userSchema = new mongoose.Schema(
     notifications: {
       dailyMealReminder: { type: Boolean, default: true },
       weeklyPlanReset: { type: Boolean, default: true },
+      loginAlerts: { type: Boolean, default: true },
+      challengeAlerts: { type: Boolean, default: true },
+      communityAlerts: { type: Boolean, default: true },
     },
 
     // Bookmarks
