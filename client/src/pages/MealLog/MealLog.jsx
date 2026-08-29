@@ -31,8 +31,14 @@ import {
   ChevronDown,
 } from 'lucide-react';
 
-// ─── Helper: today as YYYY-MM-DD ─────────────────────────────────────────────
-const todayString = () => new Date().toISOString().split('T')[0];
+// ─── Helper: today as YYYY-MM-DD (local timezone) ─────────────────────────────
+const todayString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 // ─── Confidence badge component ───────────────────────────────────────────────
 function ConfidenceBadge({ level }) {
@@ -147,6 +153,13 @@ export default function MealLog() {
 
   // ── Tab state ───
   const [activeTab, setActiveTab] = useState('image'); // 'image' | 'text'
+  const [selectedMealDate, setSelectedMealDate] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('date') || todayString();
+    } catch {
+      return todayString();
+    }
+  });
 
   // ── Image upload state ───
   const [imageFile,    setImageFile]    = useState(null);
@@ -306,6 +319,7 @@ export default function MealLog() {
       const fd = new FormData();
       fd.append('meal_image', imageFile);
       fd.append('mealType', imageMealType);
+      fd.append('date', selectedMealDate);
       const { data } = await logMealImage(fd);
       // Backend saves automatically when image is sent; show result
       setImageResult(data.log);
@@ -334,6 +348,7 @@ export default function MealLog() {
         foodName: textFood.trim(),
         portionDescription: textPortion.trim(),
         mealType: textMealType,
+        date: selectedMealDate,
       });
       setTextResult(data.log);
       setTextSaved(true); // auto-saved on analysis

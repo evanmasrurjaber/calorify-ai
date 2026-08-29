@@ -1,3 +1,6 @@
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
 const dotenv = require('dotenv');
 dotenv.config();
 
@@ -18,7 +21,9 @@ const bookmarkRoutes = require('./routes/bookmarkRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const wearableRoutes = require('./routes/wearableRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const healthReportRoutes = require('./routes/healthReportRoutes');
+const communityPostRoutes = require('./routes/communityPostRoutes');
 
 connectDB();
 
@@ -42,8 +47,10 @@ app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/wearable', wearableRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', healthReportRoutes);
 app.use('/api/health-reports', healthReportRoutes);
+app.use('/api/community-posts', communityPostRoutes);
 
 // Health check
 app.get('/', (req, res) => {

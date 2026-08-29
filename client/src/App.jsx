@@ -19,6 +19,7 @@ import MonthlyReport from './pages/MonthlyReport/MonthlyReport';
 import Bookmarks from './pages/Bookmarks/Bookmarks';
 import Subscription from './pages/Subscription/Subscription';
 import Profile from './pages/Profile/Profile';
+import Community from './pages/Community/Community';
 
 // Admin
 import AdminDashboard from './pages/Admin/AdminDashboard';
@@ -47,6 +48,7 @@ export default function App() {
 
           {/* Protected user routes */}
           <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+          <Route path="/community" element={<ProtectedRoute><Layout><Community /></Layout></ProtectedRoute>} />
           <Route path="/diet-plan" element={<ProtectedRoute><Layout><DietPlan /></Layout></ProtectedRoute>} />
           <Route path="/meal-log" element={<ProtectedRoute><Layout><MealLog /></Layout></ProtectedRoute>} />
           <Route path="/progress" element={<Navigate to="/wearable" replace />} />

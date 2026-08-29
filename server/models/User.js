@@ -52,6 +52,7 @@ const userSchema = new mongoose.Schema(
       enum: ['none', 'healthy_starter', 'nutrition_master', 'diet_legend'],
       default: 'none',
     },
+    unlockedBadges: [{ type: String }],
 
     // Google Health API integration (wearable data ingestion)
     googleFit: {

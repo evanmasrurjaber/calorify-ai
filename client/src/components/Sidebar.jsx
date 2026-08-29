@@ -13,6 +13,8 @@ import {
   Crown,
   Menu,
   X,
+  Trophy,
+  MessageSquare,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -40,7 +42,9 @@ export default function Sidebar() {
 
   const userMenuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Community Feed', path: '/community', icon: MessageSquare },
     { name: 'Progress & Wearables', path: '/wearable', icon: TrendingUp },
+    { name: 'Daily Challenges', path: '/challenges', icon: Trophy },
     { name: 'Monthly Report', path: '/monthly-report', icon: FileText },
     { name: 'AI Food Scanner', path: '/meal-log', icon: Camera },
     { name: 'Diet Planner', path: '/diet-plan', icon: CalendarDays },

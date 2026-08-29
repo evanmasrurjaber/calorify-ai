@@ -3,7 +3,16 @@
 
 const axios = require('axios');
 
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`;
+// Supported Gemini Models (with automatic multi-model fallback for quota limits)
+const GEMINI_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-pro'
+];
 
 /**
  * Safely parse JSON from LLM responses, stripping code fences and extracting valid JSON boundaries
@@ -50,7 +59,7 @@ const parseJSONResponse = (rawText) => {
 };
 
 /**
- * Send a text prompt to Gemini and return the parsed text response
+ * Send a text prompt to Gemini and return the parsed text response with multi-model fallback
  * @param {string} prompt
  * @param {object} options
  * @returns {Promise<string>}
@@ -68,15 +77,30 @@ const generateText = async (prompt, options = {}) => {
     };
   }
 
-  const response = await axios.post(
-    `${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`,
-    payload
-  );
-  return response.data.candidates[0].content.parts[0].text;
+  let lastError = null;
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+      const response = await axios.post(url, payload, { timeout: 15000 });
+      return response.data.candidates[0].content.parts[0].text;
+    } catch (err) {
+      lastError = err;
+      const status = err.response?.status;
+      // If rate limited (429) or model not found (404), fall back to next model
+      if (status === 429 || status === 404 || status === 503) {
+        console.warn(`[GeminiService]: Model ${model} returned ${status}. Attempting fallback model...`);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw lastError;
 };
 
 /**
- * Send a file (base64) + prompt to Gemini for multimodal processing
+ * Send a file (base64) + prompt to Gemini for multimodal processing with multi-model fallback
  * @param {string} prompt
  * @param {Buffer} fileBuffer
  * @param {string} mimeType - e.g. 'application/pdf' or 'image/jpeg'
@@ -103,11 +127,25 @@ const generateWithFile = async (prompt, fileBuffer, mimeType, options = {}) => {
     };
   }
 
-  const response = await axios.post(
-    `${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`,
-    payload
-  );
-  return response.data.candidates[0].content.parts[0].text;
+  let lastError = null;
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+      const response = await axios.post(url, payload, { timeout: 20000 });
+      return response.data.candidates[0].content.parts[0].text;
+    } catch (err) {
+      lastError = err;
+      const status = err.response?.status;
+      if (status === 429 || status === 404 || status === 503) {
+        console.warn(`[GeminiService]: Model ${model} returned ${status}. Attempting fallback model...`);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw lastError;
 };
 
 module.exports = { generateText, generateWithFile, parseJSONResponse };

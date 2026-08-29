@@ -3,6 +3,94 @@
 
 const MealLog = require('../models/MealLog');
 const { estimateCaloriesFromImage, estimateCaloriesFromText } = require('../services/calorieApiService');
+const WeeklySummary = require('../models/WeeklySummary');
+
+// Helper to aggregate Monday-Sunday weekly summaries and save them
+const updateWeeklySummary = async (userId, date) => {
+  try {
+    const anchor = new Date(date);
+    const dayOfWeek = anchor.getUTCDay(); // 0=Sun, 1=Mon...
+    const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const start = new Date(anchor);
+    start.setUTCDate(anchor.getUTCDate() + diffToMon);
+    start.setUTCHours(0, 0, 0, 0);
+
+    const end = new Date(start);
+    end.setUTCDate(start.getUTCDate() + 7);
+
+    const logs = await MealLog.find({
+      user: userId,
+      date: { $gte: start, $lt: end },
+    });
+
+    const totals = logs.reduce(
+      (acc, log) => ({
+        calories: acc.calories + (log.calories || 0),
+        carbs:    acc.carbs    + (log.carbs    || 0),
+        protein:  acc.protein  + (log.protein  || 0),
+        fat:      acc.fat      + (log.fat      || 0),
+      }),
+      { calories: 0, carbs: 0, protein: 0, fat: 0 }
+    );
+
+    const distinctDays = new Set(
+      logs.map((log) => new Date(log.date || log.createdAt).toISOString().split('T')[0])
+    );
+    const daysLogged = distinctDays.size;
+    const dailyAverageCalories = daysLogged > 0 ? Math.round(totals.calories / daysLogged) : 0;
+
+    const weekEndDate = new Date(start);
+    weekEndDate.setUTCDate(start.getUTCDate() + 6);
+    weekEndDate.setUTCHours(23, 59, 59, 999);
+
+    await WeeklySummary.findOneAndUpdate(
+      { user: userId, weekStartDate: start },
+      {
+        weekEndDate,
+        totalCalories: totals.calories,
+        dailyAverageCalories,
+        totalProtein: totals.protein,
+        totalCarbs: totals.carbs,
+        totalFat: totals.fat,
+        daysLogged,
+      },
+      { upsert: true, new: true }
+    );
+  } catch (error) {
+    console.error('[updateWeeklySummary]', error.message);
+  }
+};
+
+// Helper: Parse meal date from explicit parameter or natural language text
+const parseMealDate = (dateParam, text = '') => {
+  if (dateParam) {
+    const dateOnly = String(dateParam).split('T')[0];
+    return new Date(dateOnly + 'T12:00:00.000Z');
+  }
+
+  const lower = (text || '').toLowerCase();
+  const now = new Date();
+
+  // Match relative phrases like "2 days ago", "3 days ago"
+  const daysAgoMatch = lower.match(/(\d+)\s*days?\s*ago/);
+  if (daysAgoMatch) {
+    const days = parseInt(daysAgoMatch[1], 10);
+    const d = new Date(now.getTime() - days * 86400000);
+    const dateOnly = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return new Date(dateOnly + 'T12:00:00.000Z');
+  }
+
+  // Match "yesterday"
+  if (lower.includes('yesterday')) {
+    const d = new Date(now.getTime() - 86400000);
+    const dateOnly = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return new Date(dateOnly + 'T12:00:00.000Z');
+  }
+
+  // Default: today's calendar date at noon UTC
+  const todayOnly = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return new Date(todayOnly + 'T12:00:00.000Z');
+};
 
 // ─── POST /api/meal-logs/image ────────────────────────────────────────────────
 // Upload a meal photo → Gemini Vision analyses it → saves MealLog document
@@ -32,6 +120,7 @@ const logMealByImage = async (req, res) => {
     }
 
     const mealType = req.body.mealType || 'snacks';
+    const logDate = parseMealDate(req.body.date);
 
     // Send image buffer to Gemini Vision via calorieApiService
     const nutrition = await estimateCaloriesFromImage(req.file.buffer, req.file.mimetype);
@@ -39,6 +128,7 @@ const logMealByImage = async (req, res) => {
     const log = await MealLog.create({
       user:       req.user.id,
       mealType,
+      date:       logDate,
       foodName:   nutrition.foodName,
       calories:   nutrition.calories,
       carbs:      nutrition.carbs,
@@ -48,6 +138,9 @@ const logMealByImage = async (req, res) => {
       confidence: nutrition.confidence,
       breakdown:  nutrition.breakdown,
     });
+
+    // Update weekly summary in the background
+    updateWeeklySummary(req.user.id, log.date || log.createdAt);
 
     res.status(201).json({ success: true, log });
   } catch (error) {
@@ -60,11 +153,14 @@ const logMealByImage = async (req, res) => {
 // Log a meal by typing a food name → Gemini estimates calories/macros → saves
 const logMealByText = async (req, res) => {
   try {
-    const { foodName, mealType = 'snacks', portionDescription = '' } = req.body;
+    const { foodName, mealType = 'snacks', portionDescription = '', date } = req.body;
 
     if (!foodName || !foodName.trim()) {
       return res.status(400).json({ message: 'foodName is required.' });
     }
+
+    const combinedText = `${foodName} ${portionDescription}`;
+    const logDate = parseMealDate(date, combinedText);
 
     // Use Gemini text API to estimate nutrition
     const nutrition = await estimateCaloriesFromText(foodName.trim(), portionDescription.trim());
@@ -72,6 +168,7 @@ const logMealByText = async (req, res) => {
     const log = await MealLog.create({
       user:       req.user.id,
       mealType,
+      date:       logDate,
       foodName:   nutrition.foodName,
       calories:   nutrition.calories,
       carbs:      nutrition.carbs,
@@ -81,6 +178,9 @@ const logMealByText = async (req, res) => {
       confidence: nutrition.confidence,
       breakdown:  nutrition.breakdown,
     });
+
+    // Update weekly summary in the background
+    updateWeeklySummary(req.user.id, log.date || log.createdAt);
 
     res.status(201).json({ success: true, log });
   } catch (error) {
@@ -94,34 +194,36 @@ const logMealByText = async (req, res) => {
 // Also returns aggregated totals (calories, carbs, protein, fat).
 const getDailyLog = async (req, res) => {
   try {
-    const dateStr = req.query.date || new Date().toISOString().split('T')[0];
-    const period  = req.query.period || 'daily';
+    const now = new Date();
+    const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const dateStr = (req.query.date || todayLocal).split('T')[0];
+    const period = req.query.period || 'daily';
 
-    // Build UTC start/end for the requested period
-    const anchor = new Date(dateStr + 'T00:00:00Z');
     let start, end;
 
     if (period === 'weekly') {
-      // Week starts on Monday
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const anchor = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
       const dayOfWeek = anchor.getUTCDay(); // 0=Sun … 6=Sat
       const diffToMon = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
       start = new Date(anchor);
       start.setUTCDate(anchor.getUTCDate() + diffToMon);
+      start.setUTCHours(0, 0, 0, 0);
       end = new Date(start);
       end.setUTCDate(start.getUTCDate() + 7);
     } else if (period === 'monthly') {
-      start = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), 1));
-      end   = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() + 1, 1));
+      const [y, m] = dateStr.split('-').map(Number);
+      start = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
+      end   = new Date(Date.UTC(y, m, 1, 0, 0, 0));
     } else {
-      // daily (default)
-      start = anchor;
-      end   = new Date(anchor);
-      end.setUTCDate(anchor.getUTCDate() + 1);
+      // daily (default): span full 24-hour window from 00:00:00 to 23:59:59.999
+      start = new Date(dateStr + 'T00:00:00.000Z');
+      end   = new Date(dateStr + 'T23:59:59.999Z');
     }
 
     const logs = await MealLog.find({
       user: req.user.id,
-      date: { $gte: start, $lt: end },
+      date: { $gte: start, $lte: end },
     }).sort({ date: 1, createdAt: 1 });
 
     // Aggregate totals across the entire period
@@ -157,7 +259,14 @@ const deleteMealLog = async (req, res) => {
       return res.status(403).json({ message: 'Not authorised to delete this log.' });
     }
 
+    const userId = log.user.toString();
+    const logDate = log.date || log.createdAt;
+
     await log.deleteOne();
+
+    // Update weekly summary in the background
+    updateWeeklySummary(userId, logDate);
+
     res.json({ success: true, message: 'Meal log deleted.' });
   } catch (error) {
     console.error('[deleteMealLog]', error.message);
