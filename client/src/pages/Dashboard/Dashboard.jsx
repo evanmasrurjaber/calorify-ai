@@ -469,11 +469,10 @@ export default function Dashboard() {
             </div>
           </div>
 
-<<<<<<< HEAD
           {/* Quick Navigation Panel */}
           <div className="bg-white border border-[#e1e2e8] rounded-3xl p-6 shadow-sm space-y-4">
             <h3 className="text-[#565e74] text-xs font-bold uppercase tracking-wider">Quick Navigation</h3>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               <Link to="/diet-plan" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/30 p-3 rounded-2xl text-center transition flex flex-col items-center">
                 <Utensils size={20} className="text-gray-400 mb-1.5" />
                 <span className="text-[10px] text-gray-700 font-bold">Diet Planner</span>
@@ -482,60 +481,22 @@ export default function Dashboard() {
                 <Award size={20} className="text-amber-500 mb-1.5" />
                 <span className="text-[10px] text-gray-700 font-bold">Daily Challenges</span>
               </Link>
+              <Link to="/monthly-report" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/30 p-3 rounded-2xl text-center transition flex flex-col items-center">
+                <FileText size={20} className="text-emerald-500 mb-1.5" />
+                <span className="text-[10px] text-gray-700 font-bold">Health Report</span>
+              </Link>
               <Link to="/meal-log" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/30 p-3 rounded-2xl text-center transition flex flex-col items-center">
                 <TrendingUp size={20} className="text-gray-400 mb-1.5" />
                 <span className="text-[10px] text-gray-700 font-bold">AI Scanner</span>
+              </Link>
+              <Link to="/subscription" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/30 p-3 rounded-2xl text-center transition flex flex-col items-center">
+                <Star size={20} className="text-amber-400 mb-1.5" />
+                <span className="text-[10px] text-gray-700 font-bold">Go Premium</span>
               </Link>
               <Link to="/profile" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/30 p-3 rounded-2xl text-center transition flex flex-col items-center">
                 <Settings size={20} className="text-gray-400 mb-1.5" />
                 <span className="text-[10px] text-gray-700 font-bold">My Profile</span>
               </Link>
-=======
-          <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
-            <span className="text-xs font-bold text-[#565e74]">Current Goal:</span>
-            <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-full font-bold shadow-sm">
-              {getGoalLabel(user?.goal)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Navigation & Gamification */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white border border-[#e1e2e8] rounded-3xl p-6 shadow-sm">
-          <h3 className="text-[#565e74] text-xs font-bold uppercase tracking-wider mb-4">Quick Navigation</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <Link to="/diet-plan" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 p-3.5 rounded-2xl text-center transition group">
-              <Utensils size={22} className="mx-auto text-gray-400 group-hover:text-emerald-500 transition mb-1.5" />
-              <span className="text-xs text-gray-700 font-bold">Diet Plan</span>
-            </Link>
-            <Link to="/monthly-report" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 p-3.5 rounded-2xl text-center transition group">
-              <FileText size={22} className="mx-auto text-emerald-500 group-hover:text-emerald-600 transition mb-1.5" />
-              <span className="text-xs text-gray-700 font-bold">Health Report</span>
-            </Link>
-            <Link to="/meal-log" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 p-3.5 rounded-2xl text-center transition group">
-              <TrendingUp size={22} className="mx-auto text-gray-400 group-hover:text-emerald-500 transition mb-1.5" />
-              <span className="text-xs text-gray-700 font-bold">Meal Logs</span>
-            </Link>
-            <Link to="/subscription" className="bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 p-3.5 rounded-2xl text-center transition group">
-              <Star size={22} className="mx-auto text-amber-400 group-hover:text-amber-500 transition mb-1.5" />
-              <span className="text-xs text-gray-700 font-bold">Go Premium</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Gamification & Streaks */}
-        <div className="lg:col-span-2 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-100 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
-            <div className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100">
-              <span className="text-4xl">🔥</span>
-            </div>
-            <div>
-              <h4 className="text-xl font-black text-[#0F172A] mb-1">Stay Consistent!</h4>
-              <p className="text-sm font-medium text-[#565e74]">
-                Keep logging your diet plans and weight to unlock the next level badge.
-              </p>
->>>>>>> origin/main
             </div>
           </div>
 
