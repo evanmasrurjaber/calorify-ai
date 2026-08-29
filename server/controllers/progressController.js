@@ -1,5 +1,6 @@
 const Progress = require('../models/Progress');
 const MealLog = require('../models/MealLog');
+const User = require('../models/User');
 
 // @route POST /api/progress
 const logProgress = async (req, res) => {
@@ -59,6 +60,10 @@ const logProgress = async (req, res) => {
         streak: newStreak,
         caloriesConsumed
       });
+    }
+
+    if (weight !== undefined && Number(weight) > 0) {
+      await User.findByIdAndUpdate(req.user.id, { weight: Number(weight) });
     }
 
     res.status(200).json(todayEntry);
