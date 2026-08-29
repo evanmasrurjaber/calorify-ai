@@ -226,7 +226,7 @@ export default function Dashboard() {
                 </h2>
               </div>
               <Link
-                to="/meal-log"
+                to={`/meal-log?date=${selectedDate}`}
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-4 py-2.5 rounded-xl transition"
               >
                 <Plus size={14} /> Log Meals

@@ -61,6 +61,37 @@ const updateWeeklySummary = async (userId, date) => {
   }
 };
 
+// Helper: Parse meal date from explicit parameter or natural language text
+const parseMealDate = (dateParam, text = '') => {
+  if (dateParam) {
+    const dateOnly = String(dateParam).split('T')[0];
+    return new Date(dateOnly + 'T12:00:00.000Z');
+  }
+
+  const lower = (text || '').toLowerCase();
+  const now = new Date();
+
+  // Match relative phrases like "2 days ago", "3 days ago"
+  const daysAgoMatch = lower.match(/(\d+)\s*days?\s*ago/);
+  if (daysAgoMatch) {
+    const days = parseInt(daysAgoMatch[1], 10);
+    const d = new Date(now.getTime() - days * 86400000);
+    const dateOnly = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return new Date(dateOnly + 'T12:00:00.000Z');
+  }
+
+  // Match "yesterday"
+  if (lower.includes('yesterday')) {
+    const d = new Date(now.getTime() - 86400000);
+    const dateOnly = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return new Date(dateOnly + 'T12:00:00.000Z');
+  }
+
+  // Default: today's calendar date at noon UTC
+  const todayOnly = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return new Date(todayOnly + 'T12:00:00.000Z');
+};
+
 // ─── POST /api/meal-logs/image ────────────────────────────────────────────────
 // Upload a meal photo → Gemini Vision analyses it → saves MealLog document
 const logMealByImage = async (req, res) => {
@@ -89,7 +120,7 @@ const logMealByImage = async (req, res) => {
     }
 
     const mealType = req.body.mealType || 'snacks';
-    const logDate = req.body.date ? new Date(req.body.date.includes('T') ? req.body.date : req.body.date + 'T12:00:00.000Z') : new Date();
+    const logDate = parseMealDate(req.body.date);
 
     // Send image buffer to Gemini Vision via calorieApiService
     const nutrition = await estimateCaloriesFromImage(req.file.buffer, req.file.mimetype);
@@ -123,11 +154,13 @@ const logMealByImage = async (req, res) => {
 const logMealByText = async (req, res) => {
   try {
     const { foodName, mealType = 'snacks', portionDescription = '', date } = req.body;
-    const logDate = date ? new Date(date.includes('T') ? date : date + 'T12:00:00.000Z') : new Date();
 
     if (!foodName || !foodName.trim()) {
       return res.status(400).json({ message: 'foodName is required.' });
     }
+
+    const combinedText = `${foodName} ${portionDescription}`;
+    const logDate = parseMealDate(date, combinedText);
 
     // Use Gemini text API to estimate nutrition
     const nutrition = await estimateCaloriesFromText(foodName.trim(), portionDescription.trim());
@@ -161,13 +194,16 @@ const logMealByText = async (req, res) => {
 // Also returns aggregated totals (calories, carbs, protein, fat).
 const getDailyLog = async (req, res) => {
   try {
-    const dateStr = req.query.date || new Date().toISOString().split('T')[0];
-    const period  = req.query.period || 'daily';
+    const now = new Date();
+    const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const dateStr = (req.query.date || todayLocal).split('T')[0];
+    const period = req.query.period || 'daily';
 
     let start, end;
 
     if (period === 'weekly') {
-      const anchor = new Date(dateStr + 'T00:00:00.000Z');
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const anchor = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
       const dayOfWeek = anchor.getUTCDay(); // 0=Sun … 6=Sat
       const diffToMon = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
       start = new Date(anchor);
@@ -176,18 +212,18 @@ const getDailyLog = async (req, res) => {
       end = new Date(start);
       end.setUTCDate(start.getUTCDate() + 7);
     } else if (period === 'monthly') {
-      const anchor = new Date(dateStr + 'T00:00:00.000Z');
-      start = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), 1));
-      end   = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() + 1, 1));
+      const [y, m] = dateStr.split('-').map(Number);
+      start = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
+      end   = new Date(Date.UTC(y, m, 1, 0, 0, 0));
     } else {
-      // daily (default)
+      // daily (default): span full 24-hour window from 00:00:00 to 23:59:59.999
       start = new Date(dateStr + 'T00:00:00.000Z');
       end   = new Date(dateStr + 'T23:59:59.999Z');
     }
 
     const logs = await MealLog.find({
       user: req.user.id,
-      date: { $gte: start, $lt: end },
+      date: { $gte: start, $lte: end },
     }).sort({ date: 1, createdAt: 1 });
 
     // Aggregate totals across the entire period
