@@ -431,7 +431,7 @@ export default function Wearable() {
             <h3 className="font-bold text-gray-900 flex items-center gap-2 text-base">
               <Watch className="text-emerald-500" size={18} strokeWidth={2.5} /> Supported Devices
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <div className="flex items-center gap-3 p-3 bg-gray-50/50 rounded-2xl border border-gray-100">
                 <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center p-2 shrink-0">
                   <svg viewBox="0 0 48 48" className="w-full h-full">
@@ -444,16 +444,6 @@ export default function Wearable() {
                 <div>
                   <p className="font-semibold text-gray-800 text-sm">Google Health</p>
                   <p className="text-xs text-emerald-600 font-medium mt-0.5">Available</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3 p-3 bg-gray-50/30 rounded-2xl border border-gray-100 opacity-70">
-                <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center p-2.5 shrink-0 text-gray-600">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-full h-full"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2zm3.36 10.23-1.42 1.41-1.28-1.28-1.28 1.28-1.41-1.41 1.28-1.28-1.28-1.28 1.41-1.41 1.28 1.28 1.28-1.28 1.42 1.41-1.28 1.28 1.28 1.28z"/></svg>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-500 text-sm">Apple Health</p>
-                  <p className="text-xs text-gray-400 font-medium mt-0.5">Coming Soon</p>
                 </div>
               </div>
             </div>
