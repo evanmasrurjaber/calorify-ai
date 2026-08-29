@@ -73,6 +73,23 @@ export default function Subscription() {
     }
   };
 
+  const handleDevBypass = async () => {
+    try {
+      setLoading(true);
+      setErrorMsg('');
+      const { data } = await api.post('/subscriptions/dev-bypass');
+      if (data.success) {
+        setSuccess(true);
+        if (user && token) {
+          login({ ...user, isPro: true }, token);
+        }
+      }
+    } catch (err) {
+      setErrorMsg('Failed to bypass payment.');
+      setLoading(false);
+    }
+  };
+
   if (verifying) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -204,6 +221,16 @@ export default function Subscription() {
               </>
             )}
           </button>
+          
+          {/* Dev Bypass Button */}
+          <button
+            onClick={handleDevBypass}
+            disabled={loading}
+            className="w-full mt-3 bg-white/20 hover:bg-white/30 text-white font-bold py-3 rounded-2xl transition flex items-center justify-center text-sm border border-white/30"
+          >
+            Bypass Payment (Dev Mode)
+          </button>
+
           <p className="text-center text-xs text-emerald-200 mt-4 font-medium flex items-center justify-center gap-1">
             <Shield size={12} /> Secure sandbox payment gateway
           </p>
