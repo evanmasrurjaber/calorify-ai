@@ -3,7 +3,7 @@
 
 const axios = require('axios');
 
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent`;
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`;
 
 /**
  * Safely parse JSON from LLM responses, stripping code fences and extracting valid JSON boundaries

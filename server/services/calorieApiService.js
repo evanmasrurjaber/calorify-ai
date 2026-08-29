@@ -2,6 +2,7 @@
 // Member responsibility: Jarin Tasnim Dia
 
 const { generateWithFile } = require('./geminiService');
+const { optimizeImageForGemini } = require('../utils/imageOptimizer');
 
 const CALORIE_ESTIMATION_PROMPT = `You are a professional nutritionist AI specialized in Bangladeshi and South Asian cuisine.
 Analyze this meal photo carefully. Identify all visible food items and estimate their portion sizes.
@@ -27,7 +28,13 @@ Return ONLY the JSON object.`;
  * @returns {Promise<{ foodName, calories, carbs, protein, fat, confidence, breakdown }>}
  */
 const estimateCaloriesFromImage = async (imageBuffer, mimeType) => {
-  const rawText = await generateWithFile(CALORIE_ESTIMATION_PROMPT, imageBuffer, mimeType);
+  const { buffer: optimizedBuffer, mimeType: optimizedMimeType } = await optimizeImageForGemini(
+    imageBuffer,
+    mimeType,
+    { maxDimension: 1200, quality: 80 }
+  );
+
+  const rawText = await generateWithFile(CALORIE_ESTIMATION_PROMPT, optimizedBuffer, optimizedMimeType);
 
   // Strip any markdown code fences Gemini might wrap around the JSON
   const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
