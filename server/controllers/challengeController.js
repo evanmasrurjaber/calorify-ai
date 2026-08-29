@@ -152,7 +152,7 @@ const logChallengeProgress = async (req, res) => {
         user.unlockedBadges = [];
       }
 
-      user.points += pointsAwarded;
+      user.points = (user.points || 0) + pointsAwarded;
 
       // Unlock challenge-specific badge
       const badgeKey = challenge.badgeKey;
@@ -214,7 +214,7 @@ const completeChallenge = async (req, res) => {
 
     const user = await User.findById(req.user.id);
     if (!user.unlockedBadges) user.unlockedBadges = [];
-    user.points += challenge.pointsReward;
+    user.points = (user.points || 0) + challenge.pointsReward;
 
     let unlockedBadge = null;
     const badgeKey = challenge.badgeKey;
