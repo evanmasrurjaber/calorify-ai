@@ -746,6 +746,38 @@ Return ONLY valid raw JSON. Do not include markdown code block characters like \
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// @route  DELETE /api/diet-plans/active
+// Deletes the active diet plan for the authenticated user
+// ─────────────────────────────────────────────────────────────────────────────
+const deleteActivePlan = async (req, res) => {
+  try {
+    const deleted = await DietPlan.findOneAndDelete({ user: req.user.id, isActive: true });
+    if (!deleted) {
+      return res.status(404).json({ message: 'No active diet plan found to delete' });
+    }
+    res.json({ success: true, message: 'Active diet plan deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @route  DELETE /api/diet-plans/:id
+// Deletes a specific diet plan by ID
+// ─────────────────────────────────────────────────────────────────────────────
+const deletePlan = async (req, res) => {
+  try {
+    const deleted = await DietPlan.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+    if (!deleted) {
+      return res.status(404).json({ message: 'Diet plan not found' });
+    }
+    res.json({ success: true, message: 'Diet plan deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   generateDietPlan,
   regenerateDay,
@@ -754,4 +786,6 @@ module.exports = {
   generateRecipe,
   generateRecipeDirectly,
   getGenerationContext,
+  deleteActivePlan,
+  deletePlan,
 };
