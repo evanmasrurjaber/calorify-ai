@@ -13,8 +13,7 @@ import {
   User,
   Sparkles,
   LogOut,
-  Crown,
-  FileText
+  Crown
 } from 'lucide-react';
 
 export default function Sidebar() {
