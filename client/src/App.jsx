@@ -53,6 +53,7 @@ export default function App() {
           <Route path="/challenges" element={<ProtectedRoute><Layout><Challenges /></Layout></ProtectedRoute>} />
           <Route path="/shopping-list" element={<ProtectedRoute><Layout><ShoppingList /></Layout></ProtectedRoute>} />
           <Route path="/medical-report" element={<ProtectedRoute><Layout><MedicalReport /></Layout></ProtectedRoute>} />
+          <Route path="/medical-reports" element={<Navigate to="/medical-report" replace />} />
           <Route path="/bookmarks" element={<ProtectedRoute><Layout><Bookmarks /></Layout></ProtectedRoute>} />
           <Route path="/subscription" element={<ProtectedRoute><Layout><Subscription /></Layout></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />

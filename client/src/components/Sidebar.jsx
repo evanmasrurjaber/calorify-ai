@@ -12,7 +12,8 @@ import {
   User,
   Sparkles,
   LogOut,
-  Crown
+  Crown,
+  FileText
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -26,6 +27,7 @@ export default function Sidebar() {
     { name: 'AI Food Scanner', path: '/meal-log', icon: Camera },
     { name: 'Diet Planner', path: '/diet-plan', icon: CalendarDays },
     { name: 'Shopping List', path: '/shopping-list', icon: ShoppingCart },
+    { name: 'Medical Reports', path: '/medical-report', icon: FileText },
     { name: 'Recipe Library', path: '/bookmarks', icon: BookmarkCheck },
     { name: 'My Profile', path: '/profile', icon: User },
   ];
