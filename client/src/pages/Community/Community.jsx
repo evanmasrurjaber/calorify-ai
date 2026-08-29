@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   getCommunityPosts,
+  getCommunityNotifications,
   createCommunityPost,
   toggleLikeCommunityPost,
   addCommunityComment,
@@ -32,6 +33,7 @@ import {
   Flame,
   PlusCircle,
   Tag,
+  Bell,
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -75,6 +77,13 @@ export default function Community() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('latest'); // 'latest' | 'top'
 
+  // Notifications states
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const notificationsRef = useRef(null);
+
   // Modal / Create Post states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -92,6 +101,17 @@ export default function Community() {
   const [activeCommentPostId, setActiveCommentPostId] = useState(null);
   const [commentInputs, setCommentInputs] = useState({});
   const [commentingMap, setCommentingMap] = useState({});
+
+  // Close notifications dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Fetch feed
   const fetchFeed = async () => {
@@ -111,11 +131,26 @@ export default function Community() {
     }
   };
 
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      setLoadingNotifications(true);
+      const { data } = await getCommunityNotifications();
+      setNotifications(data.notifications || []);
+      setUnreadNotifications(data.count || 0);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
   useEffect(() => {
     fetchFeed();
+    fetchNotifications();
   }, [selectedCategory, sortBy]);
 
-  // Handle Search on Enter or debounce
+  // Handle Search on Enter
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     fetchFeed();
@@ -168,7 +203,7 @@ export default function Community() {
 
       const { data } = await createCommunityPost(formData);
 
-      setSuccessMsg('Diet post published to community!');
+      setSuccessMsg('Diet post published! Daily challenge updated.');
       setTimeout(() => {
         setSuccessMsg('');
         setShowCreateModal(false);
@@ -177,7 +212,7 @@ export default function Community() {
         setNewCategory('Diet Tip');
         setNewTags('');
         removeImage();
-      }, 1000);
+      }, 1200);
 
       // Prepend new post to feed
       if (data?.post) {
@@ -212,6 +247,8 @@ export default function Community() {
           return p;
         })
       );
+      // Refresh notifications in case user liked own or someone else did
+      fetchNotifications();
     } catch (err) {
       console.error('Error toggling like:', err);
     }
@@ -240,6 +277,7 @@ export default function Community() {
 
       // Clear input
       setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
+      fetchNotifications();
     } catch (err) {
       console.error('Error adding comment:', err);
     } finally {
@@ -254,6 +292,7 @@ export default function Community() {
     try {
       await deleteCommunityPost(postId);
       setPosts((prev) => prev.filter((p) => p._id !== postId));
+      fetchNotifications();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to delete post');
     }
@@ -267,7 +306,7 @@ export default function Community() {
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-16">
       {/* ── Header Banner ── */}
-      <div className="bg-white border border-gray-150 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-white border border-gray-150 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 relative">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <span className="p-3 bg-emerald-50 text-emerald-700 rounded-2xl">
@@ -284,13 +323,102 @@ export default function Community() {
           </div>
         </div>
 
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3.5 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
-        >
-          <PlusCircle size={18} />
-          Publish Diet Post
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Notification Bell Icon */}
+          <div className="relative" ref={notificationsRef}>
+            <button
+              onClick={() => {
+                setShowNotifications(!showNotifications);
+                if (!showNotifications) fetchNotifications();
+              }}
+              className={`p-3 rounded-2xl border transition relative ${
+                showNotifications
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm'
+                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+              title="Community Notifications"
+            >
+              <Bell size={20} />
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm animate-pulse">
+                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                </span>
+              )}
+            </button>
+
+            {/* Notifications Dropdown Panel */}
+            {showNotifications && (
+              <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white border border-gray-150 rounded-3xl shadow-2xl z-40 p-4 space-y-3 animate-[fadeIn_0.2s_ease]">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100 px-1">
+                  <div className="flex items-center gap-2">
+                    <Bell size={16} className="text-emerald-600" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-gray-800">
+                      Community Activity
+                    </h4>
+                  </div>
+                  <span className="text-[11px] font-bold text-gray-400">
+                    {notifications.length} updates
+                  </span>
+                </div>
+
+                <div className="max-h-72 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+                  {loadingNotifications ? (
+                    <div className="py-6 text-center text-xs text-gray-400 font-semibold">
+                      Loading activity…
+                    </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="py-8 text-center space-y-2">
+                      <div className="w-10 h-10 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mx-auto">
+                        <Bell size={18} />
+                      </div>
+                      <p className="text-xs text-gray-400 font-medium">
+                        No likes or comments on your posts yet.
+                      </p>
+                    </div>
+                  ) : (
+                    notifications.map((n) => (
+                      <div
+                        key={n.id}
+                        className="p-3 bg-gray-50/80 hover:bg-gray-100/60 rounded-2xl border border-gray-150 transition text-xs space-y-1"
+                      >
+                        <div className="flex items-center justify-between text-[11px]">
+                          <div className="flex items-center gap-1.5 font-bold text-gray-900">
+                            {n.type === 'like' ? (
+                              <span className="text-rose-500 bg-rose-50 p-1 rounded-lg">
+                                <Heart size={12} className="fill-rose-500" />
+                              </span>
+                            ) : (
+                              <span className="text-teal-600 bg-teal-50 p-1 rounded-lg">
+                                <MessageSquare size={12} />
+                              </span>
+                            )}
+                            <span>{n.message}</span>
+                          </div>
+                          <span className="text-[10px] text-gray-400">
+                            {formatTimeAgo(n.createdAt)}
+                          </span>
+                        </div>
+                        {n.post?.title && (
+                          <p className="text-[11px] text-gray-500 pl-6 line-clamp-1 italic">
+                            Post: "{n.post.title}"
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all shadow-lg shadow-emerald-600/20 active:scale-95 whitespace-nowrap"
+          >
+            <PlusCircle size={17} />
+            Publish Diet Post
+          </button>
+        </div>
       </div>
 
       {/* ── Filter Bar & Search ── */}
@@ -469,7 +597,7 @@ export default function Community() {
                   </div>
                 )}
 
-                {/* Action Bar (Likes, Comments Count, Share) */}
+                {/* Action Bar (Likes, Comments Count, Category) */}
                 <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     {/* Like Button */}

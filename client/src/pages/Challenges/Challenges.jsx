@@ -17,10 +17,18 @@ import {
   Footprints,
   CheckCircle,
   HelpCircle,
-  Plus
+  Plus,
+  MessageSquare
 } from 'lucide-react';
 
 const badgesConfig = [
+  {
+    key: 'community_diet_pioneer',
+    name: 'Community Diet Pioneer',
+    description: 'Publish a diet post in the community feed.',
+    icon: MessageSquare,
+    color: 'from-teal-400 to-emerald-600 text-teal-600 bg-teal-50 border-teal-200'
+  },
   {
     key: 'hydration_pro',
     name: 'Hydration Pro',

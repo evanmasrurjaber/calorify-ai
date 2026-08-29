@@ -1,8 +1,11 @@
 // Community Post Controller — Member 4 (Noorani Faiza Khan)
-// Handles publishing, browsing, liking, and commenting on community diet posts
+// Handles publishing, browsing, liking, commenting, notifications, first-post email, and challenge badge unlocks
 
 const CommunityPost = require('../models/CommunityPost');
 const User = require('../models/User');
+const Challenge = require('../models/Challenge');
+const { sendEmail } = require('../services/gmailService');
+const { sendBadgeUnlockEmail, getStartAndEndOfToday } = require('./challengeController');
 
 // @route   POST /api/community-posts
 // @desc    Create a new community diet post (with optional image)
@@ -58,6 +61,67 @@ const createPost = async (req, res) => {
       'name email role unlockedBadges points'
     );
 
+    // ─── 1. First Blog Post Automated Email Notification ─────────────────────────
+    const userPostCount = await CommunityPost.countDocuments({ author: req.user.id });
+    if (userPostCount === 1) {
+      const user = await User.findById(req.user.id);
+      if (user && user.email) {
+        const subject = '🎉 Congratulations on publishing your first Community Diet Post!';
+        const html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+            <h2 style="color: #10b981; text-align: center; margin-bottom: 20px;">🌱 First Diet Post Published!</h2>
+            <p style="font-size: 16px; color: #334155; line-height: 1.6;">Hi <strong>${user.name}</strong>,</p>
+            <p style="font-size: 16px; color: #334155; line-height: 1.6;">Congratulations! You have successfully published your first diet post on <strong>Calorify</strong>.</p>
+            <div style="background-color: #f8fafc; padding: 20px; border-radius: 16px; margin: 25px 0; border-left: 4px solid #10b981;">
+              <h4 style="margin: 0 0 6px 0; color: #0f172a; font-size: 16px;">${post.title}</h4>
+              <p style="margin: 0; color: #64748b; font-size: 13px;">Topic: ${post.category}</p>
+            </div>
+            <p style="font-size: 14px; color: #334155; line-height: 1.6;">Posting daily meal tips and dietary reflections helps our community discover healthier Bangladeshi meal choices and builds long-term wellness habits. Post daily to help the community!</p>
+            <p style="font-size: 14px; color: #10b981; font-weight: bold; margin-top: 15px;">Keep sharing and inspiring others on Calorify!</p>
+            <p style="font-size: 16px; color: #334155; line-height: 1.6; margin-top: 30px;">Best regards,<br/><strong>The Calorify Team</strong></p>
+          </div>
+        `;
+        sendEmail(user.email, subject, html).catch((err) =>
+          console.error('[FirstPostEmail Failed]:', err.message)
+        );
+      }
+    }
+
+    // ─── 2. Auto-Complete Daily Challenge & Unlock Badge ─────────────────────────
+    try {
+      const { start, end } = getStartAndEndOfToday();
+      const challenge = await Challenge.findOne({
+        user: req.user.id,
+        badgeKey: 'community_diet_pioneer',
+        date: { $gte: start, $lte: end },
+      });
+
+      if (challenge && !challenge.completed) {
+        challenge.current = 1;
+        challenge.completed = true;
+        challenge.completedAt = new Date();
+        await challenge.save();
+
+        const userDoc = await User.findById(req.user.id);
+        if (userDoc) {
+          userDoc.points = (userDoc.points || 0) + challenge.pointsReward;
+          if (!userDoc.unlockedBadges) userDoc.unlockedBadges = [];
+          if (!userDoc.unlockedBadges.includes('community_diet_pioneer')) {
+            userDoc.unlockedBadges.push('community_diet_pioneer');
+            userDoc.badge = 'community_diet_pioneer';
+            await userDoc.save();
+            sendBadgeUnlockEmail(userDoc.email, userDoc.name, 'Community Diet Pioneer').catch((e) =>
+              console.error(e.message)
+            );
+          } else {
+            await userDoc.save();
+          }
+        }
+      }
+    } catch (challengeErr) {
+      console.error('[Community Challenge AutoComplete]:', challengeErr.message);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Diet post published successfully!',
@@ -107,6 +171,70 @@ const getAllPosts = async (req, res) => {
     });
   } catch (error) {
     console.error('[getAllCommunityPosts Error]:', error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @route   GET /api/community-posts/notifications
+// @desc    Get likes & comments notifications on the authenticated user's posts
+// @access  Private
+const getCommunityNotifications = async (req, res) => {
+  try {
+    const userPosts = await CommunityPost.find({ author: req.user.id })
+      .populate('likes', 'name email role')
+      .populate('comments.user', 'name role')
+      .lean();
+
+    const notifications = [];
+
+    for (const post of userPosts) {
+      // 1. Likes activity
+      if (post.likes && Array.isArray(post.likes)) {
+        for (const liker of post.likes) {
+          const likerId = (liker._id || liker).toString();
+          if (likerId !== req.user.id.toString()) {
+            notifications.push({
+              id: `like_${post._id}_${likerId}`,
+              type: 'like',
+              user: liker,
+              post: { _id: post._id, title: post.title, category: post.category },
+              message: `${liker.name || 'A community member'} liked your post`,
+              createdAt: post.updatedAt || post.createdAt,
+            });
+          }
+        }
+      }
+
+      // 2. Comments activity
+      if (post.comments && Array.isArray(post.comments)) {
+        for (const comment of post.comments) {
+          const commenterId = (comment.user?._id || comment.user || '').toString();
+          if (commenterId !== req.user.id.toString()) {
+            notifications.push({
+              id: `comment_${post._id}_${comment._id || Math.random()}`,
+              type: 'comment',
+              user: comment.user || { name: comment.authorName },
+              authorName: comment.authorName,
+              commentText: comment.text,
+              post: { _id: post._id, title: post.title, category: post.category },
+              message: `${comment.authorName || 'A community member'} commented: "${comment.text.slice(0, 45)}${comment.text.length > 45 ? '…' : ''}"`,
+              createdAt: comment.createdAt,
+            });
+          }
+        }
+      }
+    }
+
+    // Sort newest first
+    notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json({
+      success: true,
+      count: notifications.length,
+      notifications,
+    });
+  } catch (error) {
+    console.error('[getCommunityNotifications Error]:', error.message);
     res.status(500).json({ message: error.message });
   }
 };
@@ -243,6 +371,7 @@ const deletePost = async (req, res) => {
 module.exports = {
   createPost,
   getAllPosts,
+  getCommunityNotifications,
   getPostById,
   toggleLikePost,
   addComment,

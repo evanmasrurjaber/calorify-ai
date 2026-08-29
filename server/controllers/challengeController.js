@@ -47,8 +47,8 @@ const getTodayChallenges = async (req, res) => {
       date: { $gte: start, $lte: end },
     });
 
-    // If challenges exist but count is not 4 (outdated seed), delete and re-seed
-    if (challenges.length > 0 && challenges.length !== 4) {
+    // If challenges exist but count is not 5 (outdated seed), delete and re-seed
+    if (challenges.length > 0 && challenges.length !== 5) {
       await Challenge.deleteMany({
         user: req.user.id,
         date: { $gte: start, $lte: end },
@@ -106,6 +106,18 @@ const getTodayChallenges = async (req, res) => {
           step: 5,
           unit: "mins",
           badgeKey: "morning_clarity",
+        },
+        {
+          user: req.user.id,
+          date: new Date(),
+          title: "Publish 1 Diet Post",
+          description: "Share a healthy meal tip, suggestion, or recipe with the community.",
+          pointsReward: 60,
+          target: 1,
+          current: 0,
+          step: 1,
+          unit: "post",
+          badgeKey: "community_diet_pioneer",
         },
       ];
 
@@ -254,4 +266,10 @@ const completeChallenge = async (req, res) => {
   }
 };
 
-module.exports = { getTodayChallenges, logChallengeProgress, completeChallenge };
+module.exports = {
+  getTodayChallenges,
+  logChallengeProgress,
+  completeChallenge,
+  sendBadgeUnlockEmail,
+  getStartAndEndOfToday,
+};

@@ -3,6 +3,9 @@ import api from './api';
 // Get community feed with optional category, search, and sort params
 export const getCommunityPosts = (params = {}) => api.get('/community-posts', { params });
 
+// Get notifications on user's posts (who liked and who commented)
+export const getCommunityNotifications = () => api.get('/community-posts/notifications');
+
 // Get single post by ID
 export const getCommunityPostById = (id) => api.get(`/community-posts/${id}`);
 

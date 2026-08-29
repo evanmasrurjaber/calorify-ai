@@ -5,6 +5,7 @@ const router = express.Router();
 const {
   createPost,
   getAllPosts,
+  getCommunityNotifications,
   getPostById,
   toggleLikePost,
   addComment,
@@ -15,6 +16,7 @@ const { upload } = require('../middleware/uploadMiddleware');
 
 // Public / Protected Feed Queries
 router.get('/', getAllPosts);
+router.get('/notifications', protect, getCommunityNotifications);
 router.get('/:id', getPostById);
 
 // Protected Operations
