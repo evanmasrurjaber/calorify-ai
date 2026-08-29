@@ -89,6 +89,7 @@ const logMealByImage = async (req, res) => {
     }
 
     const mealType = req.body.mealType || 'snacks';
+    const logDate = req.body.date ? new Date(req.body.date) : new Date();
 
     // Send image buffer to Gemini Vision via calorieApiService
     const nutrition = await estimateCaloriesFromImage(req.file.buffer, req.file.mimetype);
@@ -96,6 +97,7 @@ const logMealByImage = async (req, res) => {
     const log = await MealLog.create({
       user:       req.user.id,
       mealType,
+      date:       logDate,
       foodName:   nutrition.foodName,
       calories:   nutrition.calories,
       carbs:      nutrition.carbs,
@@ -120,7 +122,8 @@ const logMealByImage = async (req, res) => {
 // Log a meal by typing a food name → Gemini estimates calories/macros → saves
 const logMealByText = async (req, res) => {
   try {
-    const { foodName, mealType = 'snacks', portionDescription = '' } = req.body;
+    const { foodName, mealType = 'snacks', portionDescription = '', date } = req.body;
+    const logDate = date ? new Date(date) : new Date();
 
     if (!foodName || !foodName.trim()) {
       return res.status(400).json({ message: 'foodName is required.' });
@@ -132,6 +135,7 @@ const logMealByText = async (req, res) => {
     const log = await MealLog.create({
       user:       req.user.id,
       mealType,
+      date:       logDate,
       foodName:   nutrition.foodName,
       calories:   nutrition.calories,
       carbs:      nutrition.carbs,

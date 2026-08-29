@@ -147,6 +147,7 @@ export default function MealLog() {
 
   // ── Tab state ───
   const [activeTab, setActiveTab] = useState('image'); // 'image' | 'text'
+  const [selectedMealDate, setSelectedMealDate] = useState(todayString());
 
   // ── Image upload state ───
   const [imageFile,    setImageFile]    = useState(null);
@@ -306,6 +307,7 @@ export default function MealLog() {
       const fd = new FormData();
       fd.append('meal_image', imageFile);
       fd.append('mealType', imageMealType);
+      fd.append('date', selectedMealDate);
       const { data } = await logMealImage(fd);
       // Backend saves automatically when image is sent; show result
       setImageResult(data.log);
@@ -334,6 +336,7 @@ export default function MealLog() {
         foodName: textFood.trim(),
         portionDescription: textPortion.trim(),
         mealType: textMealType,
+        date: selectedMealDate,
       });
       setTextResult(data.log);
       setTextSaved(true); // auto-saved on analysis
@@ -374,7 +377,7 @@ export default function MealLog() {
       <div className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6">
 
         {/* Tab buttons */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-4">
           {[
             { id: 'image', label: 'Scan Meal',   Icon: Camera     },
             { id: 'text',  label: 'Log by Text', Icon: PencilLine },
@@ -392,6 +395,32 @@ export default function MealLog() {
               {tab.label}
             </button>
           ))}
+        </div>
+
+        {/* Date Selector for Logging */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-2xl mb-6">
+          <div className="flex items-center gap-2.5">
+            <CalendarDays size={16} className="text-emerald-600" />
+            <span className="text-xs font-bold text-gray-700">Logging for Date:</span>
+            <input
+              type="date"
+              value={selectedMealDate}
+              max={todayString()}
+              onChange={(e) => setSelectedMealDate(e.target.value)}
+              className="text-xs font-bold bg-white border border-gray-300 rounded-lg px-2.5 py-1 text-gray-850 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-sm"
+            />
+          </div>
+          {selectedMealDate === todayString() ? (
+            <span className="text-[10px] font-black tracking-wider uppercase bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg">Today</span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSelectedMealDate(todayString())}
+              className="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
+            >
+              Reset to Today
+            </button>
+          )}
         </div>
 
         {/* ── IMAGE TAB ── */}
