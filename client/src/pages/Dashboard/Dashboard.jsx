@@ -20,6 +20,14 @@ import {
   FileText
 } from 'lucide-react';
 
+// Helper: Get local YYYY-MM-DD string without UTC timezone offset errors
+const formatLocalDate = (d = new Date()) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function Dashboard() {
   const { user } = useAuth();
   
@@ -28,7 +36,7 @@ export default function Dashboard() {
   const [planLoading, setPlanLoading] = useState(true);
 
   // Daily intake tracker states
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => formatLocalDate(new Date()));
   const [dailyTotals, setDailyTotals] = useState({ calories: 0, carbs: 0, protein: 0, fat: 0 });
   const [weeklyTotals, setWeeklyTotals] = useState({ calories: 0, carbs: 0, protein: 0, fat: 0 });
   const [weeklyDaysLogged, setWeeklyDaysLogged] = useState(0);
@@ -49,7 +57,7 @@ export default function Dashboard() {
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = formatLocalDate(d);
       list.push({
         dateStr,
         dayNum: d.getDate(),
@@ -62,7 +70,8 @@ export default function Dashboard() {
 
   // Format week range string based on a date in that week
   const getWeekRangeLabel = (dateStr) => {
-    const anchor = new Date(dateStr);
+    const [y, m, d] = (dateStr || '').split('-').map(Number);
+    const anchor = y && m && d ? new Date(y, m - 1, d) : new Date();
     const dayOfWeek = anchor.getDay(); // 0 = Sun, 1 = Mon...
     const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     const mon = new Date(anchor);
@@ -213,7 +222,7 @@ export default function Dashboard() {
                   Daily Intake Tracker
                 </h3>
                 <h2 className="text-xl font-bold text-gray-900">
-                  {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  {new Date(selectedDate.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                 </h2>
               </div>
               <Link

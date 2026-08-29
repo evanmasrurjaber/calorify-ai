@@ -31,8 +31,14 @@ import {
   ChevronDown,
 } from 'lucide-react';
 
-// ─── Helper: today as YYYY-MM-DD ─────────────────────────────────────────────
-const todayString = () => new Date().toISOString().split('T')[0];
+// ─── Helper: today as YYYY-MM-DD (local timezone) ─────────────────────────────
+const todayString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 // ─── Confidence badge component ───────────────────────────────────────────────
 function ConfidenceBadge({ level }) {

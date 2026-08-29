@@ -89,7 +89,7 @@ const logMealByImage = async (req, res) => {
     }
 
     const mealType = req.body.mealType || 'snacks';
-    const logDate = req.body.date ? new Date(req.body.date) : new Date();
+    const logDate = req.body.date ? new Date(req.body.date.includes('T') ? req.body.date : req.body.date + 'T12:00:00.000Z') : new Date();
 
     // Send image buffer to Gemini Vision via calorieApiService
     const nutrition = await estimateCaloriesFromImage(req.file.buffer, req.file.mimetype);
@@ -123,7 +123,7 @@ const logMealByImage = async (req, res) => {
 const logMealByText = async (req, res) => {
   try {
     const { foodName, mealType = 'snacks', portionDescription = '', date } = req.body;
-    const logDate = date ? new Date(date) : new Date();
+    const logDate = date ? new Date(date.includes('T') ? date : date + 'T12:00:00.000Z') : new Date();
 
     if (!foodName || !foodName.trim()) {
       return res.status(400).json({ message: 'foodName is required.' });
@@ -164,26 +164,25 @@ const getDailyLog = async (req, res) => {
     const dateStr = req.query.date || new Date().toISOString().split('T')[0];
     const period  = req.query.period || 'daily';
 
-    // Build UTC start/end for the requested period
-    const anchor = new Date(dateStr + 'T00:00:00Z');
     let start, end;
 
     if (period === 'weekly') {
-      // Week starts on Monday
+      const anchor = new Date(dateStr + 'T00:00:00.000Z');
       const dayOfWeek = anchor.getUTCDay(); // 0=Sun … 6=Sat
       const diffToMon = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
       start = new Date(anchor);
       start.setUTCDate(anchor.getUTCDate() + diffToMon);
+      start.setUTCHours(0, 0, 0, 0);
       end = new Date(start);
       end.setUTCDate(start.getUTCDate() + 7);
     } else if (period === 'monthly') {
+      const anchor = new Date(dateStr + 'T00:00:00.000Z');
       start = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), 1));
       end   = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() + 1, 1));
     } else {
       // daily (default)
-      start = anchor;
-      end   = new Date(anchor);
-      end.setUTCDate(anchor.getUTCDate() + 1);
+      start = new Date(dateStr + 'T00:00:00.000Z');
+      end   = new Date(dateStr + 'T23:59:59.999Z');
     }
 
     const logs = await MealLog.find({
