@@ -28,7 +28,7 @@ import Sidebar from './components/Sidebar';
 
 // Layout wrapper with Sidebar
 const Layout = ({ children }) => (
-  <div className="min-h-screen bg-[#F7F8F7] text-gray-850 flex">
+  <div className="min-h-screen bg-[#F7F8F7] text-gray-850 flex flex-col md:flex-row">
     <Sidebar />
     <main className="flex-1 overflow-y-auto p-4 md:p-8">
       {children}
