@@ -23,6 +23,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const wearableRoutes = require('./routes/wearableRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const healthReportRoutes = require('./routes/healthReportRoutes');
+const communityPostRoutes = require('./routes/communityPostRoutes');
 
 connectDB();
 
@@ -49,6 +50,7 @@ app.use('/api/wearable', wearableRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', healthReportRoutes);
 app.use('/api/health-reports', healthReportRoutes);
+app.use('/api/community-posts', communityPostRoutes);
 
 // Health check
 app.get('/', (req, res) => {
