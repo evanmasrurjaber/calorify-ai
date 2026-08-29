@@ -500,7 +500,7 @@ export default function Community() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        <div className="max-w-3xl mx-auto space-y-6">
           {posts.map((post) => {
             const liked = isLikedByMe(post);
             const isAuthor = (user?._id || user?.id || '').toString() === (post.author?._id || post.author || '').toString();
@@ -509,7 +509,7 @@ export default function Community() {
             return (
               <div
                 key={post._id}
-                className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col space-y-5 self-start w-full"
+                className="bg-white border border-gray-150 rounded-3xl p-6 sm:p-7 shadow-sm hover:shadow-md transition-all flex flex-col space-y-5 w-full"
               >
                 {/* Author Header & Category */}
                 <div className="flex items-start justify-between gap-3">
