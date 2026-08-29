@@ -1,5 +1,6 @@
 const MedicalReport = require('../models/MedicalReport');
 const { generateWithFile, parseJSONResponse } = require('../services/geminiService');
+const { optimizeImageForGemini } = require('../utils/imageOptimizer');
 
 const MEDICAL_EXTRACTION_PROMPT = `You are an expert clinical pathologist and medical document AI specialized in laboratory reports and diagnostic records (especially from Bangladeshi / South Asian diagnostic centers like Square, Popular, Labaid, Ibn Sina, etc.).
 
@@ -53,11 +54,18 @@ const uploadReport = async (req, res) => {
     const { originalname, mimetype, buffer, size } = req.file;
     const fileType = mimetype === 'application/pdf' ? 'pdf' : 'image';
 
-    // Call Gemini multimodal with base64 buffer
+    // Downscale and optimize image before sending to Gemini (PDFs remain untouched)
+    const { buffer: processedBuffer, mimeType: processedMimeType } = await optimizeImageForGemini(
+      buffer,
+      mimetype,
+      { maxDimension: 1600, quality: 85 }
+    );
+
+    // Call Gemini multimodal with optimized buffer
     const rawResponse = await generateWithFile(
       MEDICAL_EXTRACTION_PROMPT,
-      buffer,
-      mimetype
+      processedBuffer,
+      processedMimeType
     );
 
     const parsed = parseJSONResponse(rawResponse);
