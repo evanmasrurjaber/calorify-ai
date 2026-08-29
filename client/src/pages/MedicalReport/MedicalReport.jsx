@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   FileText,
   Upload,
@@ -51,6 +52,7 @@ function formatBytes(bytes) {
 }
 
 export default function MedicalReport() {
+  const { user } = useAuth();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -256,57 +258,77 @@ export default function MedicalReport() {
           </div>
 
           {/* Drag & Drop Zone */}
-          <div
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-3 ${
-              dragActive
-                ? 'border-[#10B981] bg-[#10B981]/5 scale-[1.01]'
-                : selectedFile
-                ? 'border-emerald-300 bg-emerald-50/40'
-                : 'border-[#cbd5e1] hover:border-[#10B981]/60 hover:bg-[#f8f9ff]'
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,image/jpeg,image/png,image/jpg"
-              onChange={handleFileChange}
-              className="hidden"
-            />
+          {!user?.isPro ? (
+            <div className="border-2 border-dashed border-[#cbd5e1] bg-[#f8f9ff]/50 rounded-2xl p-8 sm:p-10 text-center flex flex-col items-center justify-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-[#10B981]/10 text-[#10B981] flex items-center justify-center shadow-sm">
+                <ShieldAlert size={28} />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-[#0F172A] text-lg mb-1">Premium Feature</h3>
+                <p className="text-sm text-[#565e74] max-w-sm mx-auto">
+                  Upgrade to Pro to unlock AI medical report parsing and automatically tailor your diet plans to your clinical markers.
+                </p>
+              </div>
+              <Link
+                to="/subscription"
+                className="mt-2 inline-flex items-center gap-2 bg-gradient-to-r from-[#10B981] to-[#006c49] hover:from-[#059669] hover:to-[#004d34] text-white font-bold py-3 px-8 rounded-2xl transition-all shadow-md shadow-[#10B981]/20 active:scale-95"
+              >
+                Upgrade to Pro
+              </Link>
+            </div>
+          ) : (
+            <div
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-2xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-3 ${
+                dragActive
+                  ? 'border-[#10B981] bg-[#10B981]/5 scale-[1.01]'
+                  : selectedFile
+                  ? 'border-emerald-300 bg-emerald-50/40'
+                  : 'border-[#cbd5e1] hover:border-[#10B981]/60 hover:bg-[#f8f9ff]'
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,image/jpeg,image/png,image/jpg"
+                onChange={handleFileChange}
+                className="hidden"
+              />
 
-            {selectedFile ? (
-              <div className="space-y-2">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-[#006c49] flex items-center justify-center mx-auto shadow-xs">
-                  {selectedFile.type === 'application/pdf' ? <FileText size={28} /> : <FileImage size={28} />}
+              {selectedFile ? (
+                <div className="space-y-2">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-[#006c49] flex items-center justify-center mx-auto shadow-xs">
+                    {selectedFile.type === 'application/pdf' ? <FileText size={28} /> : <FileImage size={28} />}
+                  </div>
+                  <div>
+                    <p className="font-bold text-[#0F172A] text-sm">{selectedFile.name}</p>
+                    <p className="text-xs text-[#565e74] mt-0.5">{formatBytes(selectedFile.size)}</p>
+                  </div>
+                  <span className="inline-block text-xs font-semibold text-[#006c49] bg-emerald-100/70 px-3 py-1 rounded-full">
+                    Click to replace file
+                  </span>
                 </div>
-                <div>
-                  <p className="font-bold text-[#0F172A] text-sm">{selectedFile.name}</p>
-                  <p className="text-xs text-[#565e74] mt-0.5">{formatBytes(selectedFile.size)}</p>
+              ) : (
+                <div className="space-y-2">
+                  <div className="w-14 h-14 rounded-2xl bg-[#10B981]/10 text-[#10B981] flex items-center justify-center mx-auto">
+                    <Upload size={26} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-[#0F172A] text-sm">
+                      Drag & drop your lab report here, or <span className="text-[#10B981] underline">browse</span>
+                    </p>
+                    <p className="text-xs text-[#565e74] mt-1">
+                      Supports blood tests, diagnostic summaries, prescriptions, and lab printouts
+                    </p>
+                  </div>
                 </div>
-                <span className="inline-block text-xs font-semibold text-[#006c49] bg-emerald-100/70 px-3 py-1 rounded-full">
-                  Click to replace file
-                </span>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="w-14 h-14 rounded-2xl bg-[#10B981]/10 text-[#10B981] flex items-center justify-center mx-auto">
-                  <Upload size={26} />
-                </div>
-                <div>
-                  <p className="font-bold text-[#0F172A] text-sm">
-                    Drag & drop your lab report here, or <span className="text-[#10B981] underline">browse</span>
-                  </p>
-                  <p className="text-xs text-[#565e74] mt-1">
-                    Supports blood tests, diagnostic summaries, prescriptions, and lab printouts
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Action Bar */}
           {selectedFile && (

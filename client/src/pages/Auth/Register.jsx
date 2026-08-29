@@ -53,20 +53,20 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/40 via-gray-950 to-gray-950 px-4 py-12">
-      <div className="bg-gray-900/60 backdrop-blur-xl border border-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-2xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-purple-600 to-indigo-600"></div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-green-50 to-teal-100 px-4 py-12">
+      <div className="bg-white/90 backdrop-blur-xl border border-white/50 p-8 rounded-3xl shadow-[0_20px_50px_-12px_rgba(16,185,129,0.2)] w-full max-w-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
 
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-white tracking-tight flex justify-center items-center gap-2 mb-2">
-            <span className="text-purple-500 font-black bg-purple-500/10 px-3 py-1 rounded-xl border border-purple-500/20 text-2xl">C</span>
-            Calorify<span className="text-purple-400">.ai</span>
+          <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight flex justify-center items-center gap-2 mb-2">
+            <span className="text-emerald-500 font-black bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20 text-2xl">C</span>
+            Calorify<span className="text-emerald-500">.ai</span>
           </h1>
-          <p className="text-gray-400 text-sm">Create your health profile and start tracking</p>
+          <p className="text-gray-500 text-sm font-medium">Create your health profile and start tracking</p>
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl mb-6 text-sm text-center font-medium">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl mb-6 text-sm text-center font-medium">
             {error}
           </div>
         )}
@@ -74,10 +74,10 @@ export default function Register() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Group 1: Credentials */}
           <div>
-            <h3 className="text-sm font-semibold text-purple-400 uppercase tracking-wider mb-4 border-b border-gray-800/80 pb-1.5">Account credentials</h3>
+            <h3 className="text-sm font-bold text-emerald-600 uppercase tracking-wider mb-4 border-b border-emerald-100 pb-1.5">Account credentials</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Full Name</label>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Full Name</label>
                 <input
                   type="text"
                   name="name"
@@ -85,11 +85,11 @@ export default function Register() {
                   onChange={handleChange}
                   required
                   placeholder="John Doe"
-                  className="w-full bg-gray-950 border border-gray-800 focus:border-purple-500 rounded-2xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition"
+                  className="w-full bg-gray-50/50 border-2 border-emerald-100 focus:border-emerald-500 rounded-2xl px-4 py-3.5 text-gray-800 font-medium placeholder-gray-400 focus:outline-none transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Email Address</label>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Email Address</label>
                 <input
                   type="email"
                   name="email"
@@ -97,22 +97,22 @@ export default function Register() {
                   onChange={handleChange}
                   required
                   placeholder="john@example.com"
-                  className="w-full bg-gray-950 border border-gray-800 focus:border-purple-500 rounded-2xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition"
+                  className="w-full bg-gray-50/50 border-2 border-emerald-100 focus:border-emerald-500 rounded-2xl px-4 py-3.5 text-gray-800 font-medium placeholder-gray-400 focus:outline-none transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Phone Number</label>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Phone Number</label>
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="+88017xxxxxxxx"
-                  className="w-full bg-gray-950 border border-gray-800 focus:border-purple-500 rounded-2xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition"
+                  className="w-full bg-gray-50/50 border-2 border-emerald-100 focus:border-emerald-500 rounded-2xl px-4 py-3.5 text-gray-800 font-medium placeholder-gray-400 focus:outline-none transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Password</label>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Password</label>
                 <input
                   type="password"
                   name="password"
@@ -120,7 +120,7 @@ export default function Register() {
                   onChange={handleChange}
                   required
                   placeholder="••••••••"
-                  className="w-full bg-gray-950 border border-gray-800 focus:border-purple-500 rounded-2xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition"
+                  className="w-full bg-gray-50/50 border-2 border-emerald-100 focus:border-emerald-500 rounded-2xl px-4 py-3.5 text-gray-800 font-medium placeholder-gray-400 focus:outline-none transition-colors"
                 />
               </div>
             </div>
@@ -128,48 +128,48 @@ export default function Register() {
 
           {/* Group 2: Metrics */}
           <div>
-            <h3 className="text-sm font-semibold text-purple-400 uppercase tracking-wider mb-4 border-b border-gray-800/80 pb-1.5">Health Profile & Goals</h3>
+            <h3 className="text-sm font-bold text-emerald-600 uppercase tracking-wider mb-4 border-b border-emerald-100 pb-1.5">Health Profile & Goals</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Age</label>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Age</label>
                 <input
                   type="number"
                   name="age"
                   value={formData.age}
                   onChange={handleChange}
                   placeholder="25"
-                  className="w-full bg-gray-950 border border-gray-800 focus:border-purple-500 rounded-2xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition"
+                  className="w-full bg-gray-50/50 border-2 border-emerald-100 focus:border-emerald-500 rounded-2xl px-4 py-3.5 text-gray-800 font-medium placeholder-gray-400 focus:outline-none transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Weight (kg)</label>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Weight (kg)</label>
                 <input
                   type="number"
                   name="weight"
                   value={formData.weight}
                   onChange={handleChange}
                   placeholder="70"
-                  className="w-full bg-gray-950 border border-gray-800 focus:border-purple-500 rounded-2xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition"
+                  className="w-full bg-gray-50/50 border-2 border-emerald-100 focus:border-emerald-500 rounded-2xl px-4 py-3.5 text-gray-800 font-medium placeholder-gray-400 focus:outline-none transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Height (cm)</label>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Height (cm)</label>
                 <input
                   type="number"
                   name="height"
                   value={formData.height}
                   onChange={handleChange}
                   placeholder="175"
-                  className="w-full bg-gray-950 border border-gray-800 focus:border-purple-500 rounded-2xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition"
+                  className="w-full bg-gray-50/50 border-2 border-emerald-100 focus:border-emerald-500 rounded-2xl px-4 py-3.5 text-gray-800 font-medium placeholder-gray-400 focus:outline-none transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Fitness Goal</label>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Fitness Goal</label>
                 <select
                   name="goal"
                   value={formData.goal}
                   onChange={handleChange}
-                  className="w-full bg-gray-950 border border-gray-800 focus:border-purple-500 rounded-2xl px-4 py-3 text-white focus:outline-none transition"
+                  className="w-full bg-gray-50/50 border-2 border-emerald-100 focus:border-emerald-500 rounded-2xl px-4 py-3.5 text-gray-800 font-medium focus:outline-none transition-colors"
                 >
                   <option value="lose_weight">Lose Weight</option>
                   <option value="maintain">Maintain Weight</option>
@@ -182,16 +182,16 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white font-semibold rounded-2xl transition shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 active:scale-[0.98] mt-2"
+            className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 text-white font-semibold rounded-2xl transition shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 active:scale-[0.98] mt-2"
           >
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
 
-        <div className="mt-8 text-center border-t border-gray-800/80 pt-6">
-          <p className="text-gray-400 text-sm">
+        <div className="mt-8 text-center border-t border-emerald-100 pt-6">
+          <p className="text-gray-500 text-sm font-medium">
             Already have an account?{' '}
-            <Link to="/login" className="text-purple-400 hover:text-purple-300 font-semibold transition">
+            <Link to="/login" className="text-emerald-600 hover:text-emerald-500 font-bold transition">
               Sign In
             </Link>
           </p>

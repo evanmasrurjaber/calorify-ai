@@ -228,7 +228,7 @@ export default function Bookmarks() {
                 <p className="text-sm text-gray-400 mt-2">No bookmarked recipes yet.</p>
               </div>
             ) : (
-              <div className="flex flex-col gap-4 max-h-[500px] overflow-y-auto pr-2 pb-4">
+              <div className="flex flex-col gap-4 max-h-[1500px] overflow-y-auto pr-2 pb-4">
                 {bookmarks.map((recipe, index) => {
                   const isSelected = selectedRecipe && (selectedRecipe.mealName === recipe.mealName || selectedRecipe.name === recipe.mealName);
                   return (

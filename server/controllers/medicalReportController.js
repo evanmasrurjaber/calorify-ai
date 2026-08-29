@@ -1,4 +1,5 @@
 const MedicalReport = require('../models/MedicalReport');
+const User = require('../models/User');
 const { generateWithFile, parseJSONResponse } = require('../services/geminiService');
 const { optimizeImageForGemini } = require('../utils/imageOptimizer');
 
@@ -47,6 +48,11 @@ Return ONLY valid JSON.`;
 // Upload a medical report PDF or image scan → Gemini parses it → saves to DB
 const uploadReport = async (req, res) => {
   try {
+    const user = await User.findById(req.user.id);
+    if (!user || !user.isPro) {
+      return res.status(403).json({ message: 'Premium subscription required to upload medical reports.' });
+    }
+
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded. Please upload a PDF or image.' });
     }

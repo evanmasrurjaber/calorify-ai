@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   User,
   Mail,
@@ -16,8 +17,16 @@ import {
   Crown,
   Award,
   Zap,
+  FileText,
+  Stethoscope,
+  ExternalLink,
+  Droplets,
+  HeartPulse,
+  RefreshCw,
+  ArrowUpRight,
 } from 'lucide-react';
 import { getUserProfile, updateUserProfile } from '../../services/userService';
+import { getMedicalReports } from '../../services/medicalReportService';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Profile() {
@@ -48,8 +57,13 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
+  // Medical Reports State
+  const [medicalReports, setMedicalReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(true);
+
   useEffect(() => {
     fetchProfile();
+    fetchMedicalReports();
   }, []);
 
   const fetchProfile = async () => {
@@ -67,6 +81,78 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchMedicalReports = async () => {
+    try {
+      setReportsLoading(true);
+      const { data } = await getMedicalReports();
+      setMedicalReports(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Could not load medical reports:', err);
+      setMedicalReports([]);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+
+  // Aggregated clinical data from all reports
+  const latestReport = medicalReports[0] || null;
+
+  const allParsedDiagnoses = useMemo(() => {
+    const set = new Set();
+    medicalReports.forEach((r) => {
+      (r.parsedData?.diagnoses || []).forEach((d) => {
+        if (d && typeof d === 'string') set.add(d.trim());
+      });
+    });
+    return Array.from(set);
+  }, [medicalReports]);
+
+  const allParsedAllergies = useMemo(() => {
+    const set = new Set();
+    medicalReports.forEach((r) => {
+      (r.parsedData?.allergies || []).forEach((a) => {
+        if (a && typeof a === 'string') set.add(a.trim());
+      });
+    });
+    return Array.from(set);
+  }, [medicalReports]);
+
+  const latestHbA1c = useMemo(() => {
+    const reportWithHbA1c = medicalReports.find((r) => r.parsedData?.hba1c != null);
+    return reportWithHbA1c ? reportWithHbA1c.parsedData.hba1c : null;
+  }, [medicalReports]);
+
+  const latestBloodMarkers = latestReport?.parsedData?.bloodMarkers || {};
+
+  // One-click sync from medical reports to profile state
+  const syncFromMedicalReports = () => {
+    if (!allParsedDiagnoses.length && !allParsedAllergies.length) return;
+
+    setProfile((prev) => {
+      const existingConditions = prev.medicalConditions
+        ? prev.medicalConditions.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+      const mergedConditions = Array.from(new Set([...existingConditions, ...allParsedDiagnoses]));
+
+      const existingAllergies = prev.allergies
+        ? prev.allergies.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+      const mergedAllergies = Array.from(new Set([...existingAllergies, ...allParsedAllergies]));
+
+      return {
+        ...prev,
+        medicalConditions: mergedConditions.join(', '),
+        allergies: mergedAllergies.join(', '),
+      };
+    });
+
+    setMessage({
+      type: 'success',
+      text: '✨ Parsed medical conditions & allergies populated into your profile fields! Click "Save Profile Details" to persist.',
+    });
+    setTimeout(() => setMessage({ type: '', text: '' }), 5000);
   };
 
   const handleChange = (e) => {
@@ -457,6 +543,255 @@ export default function Profile() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Section: Clinical Diagnostics & Medical Report Insights */}
+        <div className="bg-white border border-gray-150 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+            <div className="flex items-center gap-3">
+              <span className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl">
+                <Stethoscope size={20} />
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-gray-900">Clinical Diagnostics & Medical Report Data</h3>
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                    AI Parsed
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 font-medium">
+                  Conditions and biometrics extracted from your laboratory test scans
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              {medicalReports.length > 0 && (allParsedDiagnoses.length > 0 || allParsedAllergies.length > 0) && (
+                <button
+                  type="button"
+                  onClick={syncFromMedicalReports}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200 transition active:scale-95 cursor-pointer"
+                  title="Copy parsed diagnoses & allergies into your editable profile fields above"
+                >
+                  <Sparkles size={13} className="text-blue-600" />
+                  <span>Sync to Profile Form</span>
+                </button>
+              )}
+              <Link
+                to="/medical-report"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 transition cursor-pointer"
+              >
+                <span>Upload / View Reports</span>
+                <ArrowUpRight size={14} className="text-gray-500" />
+              </Link>
+            </div>
+          </div>
+
+          {reportsLoading ? (
+            <div className="py-8 flex flex-col items-center justify-center gap-2">
+              <RefreshCw size={20} className="animate-spin text-blue-500" />
+              <p className="text-xs text-gray-500">Loading parsed clinical records...</p>
+            </div>
+          ) : medicalReports.length === 0 ? (
+            /* Empty State */
+            <div className="bg-gradient-to-br from-blue-50/50 to-indigo-50/30 rounded-2xl p-6 border border-blue-100 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mx-auto shadow-xs">
+                <FileText size={22} />
+              </div>
+              <div className="max-w-md mx-auto space-y-1">
+                <h4 className="text-sm font-bold text-gray-900">No Medical Lab Reports Uploaded Yet</h4>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Upload PDF or scanned photos of your diagnostic test reports (from Popular, Square, Labaid, Ibn Sina, etc.) to automatically extract health conditions, blood sugar, and biomarker trends.
+                </p>
+              </div>
+              <Link
+                to="/medical-report"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 transition active:scale-95"
+              >
+                <Sparkles size={14} />
+                <span>Upload First Medical Report</span>
+              </Link>
+            </div>
+          ) : (
+            /* Parsed Clinical Information Display */
+            <div className="space-y-5">
+              {/* Reports Summary Strip */}
+              <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-gray-50/80 rounded-2xl border border-gray-150 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="font-bold text-gray-800">
+                    {medicalReports.length} {medicalReports.length === 1 ? 'Report' : 'Reports'} Synchronized
+                  </span>
+                  <span className="text-gray-400">•</span>
+                  <span className="text-gray-500">
+                    Latest: <strong className="text-gray-700 font-semibold">{latestReport?.fileName || 'Report'}</strong> (
+                    {new Date(latestReport?.createdAt).toLocaleDateString()})
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  Calibrating AI Diet Plans
+                </span>
+              </div>
+
+              {/* Grid: Diagnoses & Allergies */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Diagnoses Card */}
+                <div className="p-4 rounded-2xl border border-gray-150 bg-[#fafbff] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <Stethoscope size={14} className="text-blue-600" />
+                      Extracted Health Conditions & Diagnoses
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                      {allParsedDiagnoses.length} Found
+                    </span>
+                  </div>
+                  {allParsedDiagnoses.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {allParsedDiagnoses.map((d, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 text-blue-900 border border-blue-200 shadow-xs"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                          {d}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400 italic py-1">
+                      No chronic clinical conditions detected in uploaded documents.
+                    </p>
+                  )}
+                </div>
+
+                {/* Allergies Card */}
+                <div className="p-4 rounded-2xl border border-gray-150 bg-[#fafbff] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <AlertCircle size={14} className="text-rose-500" />
+                      Extracted Allergies & Intolerances
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">
+                      {allParsedAllergies.length} Found
+                    </span>
+                  </div>
+                  {allParsedAllergies.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {allParsedAllergies.map((a, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-50 text-rose-900 border border-rose-200 shadow-xs"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                          {a}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400 italic py-1">
+                      No specific allergies flagged in uploaded records.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Biomarkers / Lab Results Highlight Strip */}
+              {(latestHbA1c != null ||
+                latestBloodMarkers.fastingGlucose ||
+                latestBloodMarkers.systolicBP ||
+                latestBloodMarkers.totalCholesterol ||
+                latestBloodMarkers.hemoglobin ||
+                latestBloodMarkers.creatinine) && (
+                <div className="space-y-2.5">
+                  <span className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <Droplets size={14} className="text-emerald-600" />
+                    Latest Diagnostic Biomarkers
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                    {/* HbA1c */}
+                    {latestHbA1c != null && (
+                      <div className="p-3 bg-gray-50 border border-gray-150 rounded-2xl text-center">
+                        <span className="block text-[10px] font-bold text-gray-500 uppercase">HbA1c</span>
+                        <span className="text-sm font-black text-gray-900">{latestHbA1c}%</span>
+                        <span
+                          className={`block text-[9px] font-bold mt-0.5 ${
+                            latestHbA1c >= 6.5
+                              ? 'text-red-600'
+                              : latestHbA1c >= 5.7
+                              ? 'text-amber-600'
+                              : 'text-emerald-600'
+                          }`}
+                        >
+                          {latestHbA1c >= 6.5 ? 'Diabetic' : latestHbA1c >= 5.7 ? 'Prediabetic' : 'Normal'}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Fasting Glucose */}
+                    {latestBloodMarkers.fastingGlucose && (
+                      <div className="p-3 bg-gray-50 border border-gray-150 rounded-2xl text-center">
+                        <span className="block text-[10px] font-bold text-gray-500 uppercase">Fasting Glucose</span>
+                        <span className="text-sm font-black text-gray-900">{latestBloodMarkers.fastingGlucose}</span>
+                        <span className="block text-[9px] text-gray-400">mg/dL</span>
+                      </div>
+                    )}
+
+                    {/* Blood Pressure */}
+                    {(latestBloodMarkers.systolicBP || latestBloodMarkers.diastolicBP) && (
+                      <div className="p-3 bg-gray-50 border border-gray-150 rounded-2xl text-center">
+                        <span className="block text-[10px] font-bold text-gray-500 uppercase">Blood Pressure</span>
+                        <span className="text-sm font-black text-gray-900">
+                          {latestBloodMarkers.systolicBP || '--'}/{latestBloodMarkers.diastolicBP || '--'}
+                        </span>
+                        <span className="block text-[9px] text-gray-400">mmHg</span>
+                      </div>
+                    )}
+
+                    {/* Total Cholesterol */}
+                    {latestBloodMarkers.totalCholesterol && (
+                      <div className="p-3 bg-gray-50 border border-gray-150 rounded-2xl text-center">
+                        <span className="block text-[10px] font-bold text-gray-500 uppercase">Cholesterol</span>
+                        <span className="text-sm font-black text-gray-900">{latestBloodMarkers.totalCholesterol}</span>
+                        <span className="block text-[9px] text-gray-400">mg/dL</span>
+                      </div>
+                    )}
+
+                    {/* Hemoglobin */}
+                    {latestBloodMarkers.hemoglobin && (
+                      <div className="p-3 bg-gray-50 border border-gray-150 rounded-2xl text-center">
+                        <span className="block text-[10px] font-bold text-gray-500 uppercase">Hemoglobin</span>
+                        <span className="text-sm font-black text-gray-900">{latestBloodMarkers.hemoglobin}</span>
+                        <span className="block text-[9px] text-gray-400">g/dL</span>
+                      </div>
+                    )}
+
+                    {/* Creatinine */}
+                    {latestBloodMarkers.creatinine && (
+                      <div className="p-3 bg-gray-50 border border-gray-150 rounded-2xl text-center">
+                        <span className="block text-[10px] font-bold text-gray-500 uppercase">Creatinine</span>
+                        <span className="text-sm font-black text-gray-900">{latestBloodMarkers.creatinine}</span>
+                        <span className="block text-[9px] text-gray-400">mg/dL</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* AI Clinical Summary */}
+              {latestReport?.parsedData?.summary && (
+                <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-150 text-xs space-y-1">
+                  <span className="font-bold text-emerald-900 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                    <Sparkles size={12} className="text-emerald-600" />
+                    Latest AI Clinical Summary
+                  </span>
+                  <p className="text-emerald-950/90 leading-relaxed font-medium">
+                    {latestReport.parsedData.summary}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Section 3: Notification Preferences */}
