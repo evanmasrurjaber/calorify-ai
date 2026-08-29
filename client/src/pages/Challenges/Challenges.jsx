@@ -332,7 +332,15 @@ export default function Challenges() {
 
           <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/20 text-center">
             <span className="text-[10px] font-extrabold uppercase text-emerald-200 block">Current Level</span>
-            <span className="text-lg font-black">{profile?.badge && profile.badge !== 'none' ? profile.badge.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'Healthy Starter'}</span>
+            <span className="text-lg font-black">
+              {userPoints >= 330
+                ? 'Diet Legend 👑'
+                : userPoints >= 200
+                ? 'Nutrition Master'
+                : userPoints >= 100
+                ? 'Healthy Starter'
+                : 'Beginner'}
+            </span>
           </div>
         </div>
 
@@ -508,7 +516,11 @@ export default function Challenges() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 pt-2">
           {badgesConfig.map((badge) => {
-            const isUnlocked = userUnlockedBadges.includes(badge.key);
+            const isUnlocked =
+              userUnlockedBadges.includes(badge.key) ||
+              (badge.key === 'diet_legend' && userPoints >= 330) ||
+              (badge.key === 'nutrition_master' && userPoints >= 200) ||
+              (badge.key === 'healthy_starter' && userPoints >= 100);
             const IconComponent = badge.icon;
             
             return (
