@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getActiveDietPlan } from '../../services/dietPlanService';
-import { getDailyLog } from '../../services/mealLogService';
+import { getDailyLog, logMealText } from '../../services/mealLogService';
 import { getUserProfile } from '../../services/userService';
 import {
   TrendingUp,
@@ -27,6 +27,8 @@ import {
   TrendingDown,
   Dumbbell,
   Edit3,
+  AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react';
 
 // Helper: Get local YYYY-MM-DD string without UTC timezone offset errors
@@ -83,6 +85,10 @@ export default function Dashboard() {
   const [weeklyTotals, setWeeklyTotals] = useState({ calories: 0, carbs: 0, protein: 0, fat: 0 });
   const [weeklyDaysLogged, setWeeklyDaysLogged] = useState(0);
   const [trackerLoading, setTrackerLoading] = useState(false);
+
+  // Quick 1-Click logging state from Today's Meal Plan
+  const [loggingIndex, setLoggingIndex] = useState(null);
+  const [loggedIndices, setLoggedIndices] = useState({});
 
   const getGoalLabel = (goal) => {
     switch (goal) {
@@ -157,33 +163,64 @@ export default function Dashboard() {
   }, []);
 
   // Fetch tracker data (daily and weekly aggregated metrics)
-  useEffect(() => {
-    const fetchTrackerData = async () => {
-      try {
-        setTrackerLoading(true);
-        
-        // Fetch daily intake totals
-        const dailyRes = await getDailyLog(selectedDate, 'daily');
-        setDailyTotals(dailyRes.data.totals || { calories: 0, carbs: 0, protein: 0, fat: 0 });
+  const fetchTrackerData = useCallback(async () => {
+    try {
+      setTrackerLoading(true);
+      
+      // Fetch daily intake totals
+      const dailyRes = await getDailyLog(selectedDate, 'daily');
+      setDailyTotals(dailyRes.data.totals || { calories: 0, carbs: 0, protein: 0, fat: 0 });
 
-        // Fetch weekly totals
-        const weeklyRes = await getDailyLog(selectedDate, 'weekly');
-        setWeeklyTotals(weeklyRes.data.totals || { calories: 0, carbs: 0, protein: 0, fat: 0 });
+      // Fetch weekly totals
+      const weeklyRes = await getDailyLog(selectedDate, 'weekly');
+      setWeeklyTotals(weeklyRes.data.totals || { calories: 0, carbs: 0, protein: 0, fat: 0 });
 
-        // Count distinct days logged in this week
-        const logs = weeklyRes.data.logs || [];
-        const distinctDays = new Set(
-          logs.map(log => (log.date || log.createdAt).slice(0, 10))
-        );
-        setWeeklyDaysLogged(distinctDays.size);
-      } catch (err) {
-        console.error('Error loading tracker data:', err);
-      } finally {
-        setTrackerLoading(false);
-      }
-    };
-    fetchTrackerData();
+      // Count distinct days logged in this week
+      const logs = weeklyRes.data.logs || [];
+      const distinctDays = new Set(
+        logs.map(log => (log.date || log.createdAt).slice(0, 10))
+      );
+      setWeeklyDaysLogged(distinctDays.size);
+    } catch (err) {
+      console.error('Error loading tracker data:', err);
+    } finally {
+      setTrackerLoading(false);
+    }
   }, [selectedDate]);
+
+  useEffect(() => {
+    fetchTrackerData();
+  }, [fetchTrackerData]);
+
+  // Handle 1-Click Quick Log from Today's Meal Plan
+  const handleQuickLogMeal = async (meal, idx) => {
+    try {
+      setLoggingIndex(idx);
+      const defaultOrder = ['breakfast', 'lunch', 'snacks', 'dinner'];
+      const mealType = (meal.meal || defaultOrder[idx] || 'lunch').toLowerCase();
+
+      await logMealText({
+        foodName: meal.name,
+        mealType,
+        portionDescription: `Planned ${mealType} item from AI Diet Plan`,
+        date: selectedDate,
+        calories: meal.calories,
+        carbs: meal.carbs,
+        protein: meal.protein,
+        fat: meal.fat,
+      });
+
+      // Mark as logged locally
+      setLoggedIndices((prev) => ({ ...prev, [idx]: true }));
+      // Automatically refresh tracker intake numbers in real-time
+      await fetchTrackerData();
+    } catch (err) {
+      console.error('Quick log meal error:', err);
+      alert('Failed to log meal to tracker: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoggingIndex(null);
+    }
+  };
 
   // Calorie calculations dynamically auto-computed from active user metrics (Mifflin-St Jeor)
   const targetCalories = useMemo(() => {
@@ -215,11 +252,27 @@ export default function Dashboard() {
     ? todayDietPlan.meals.reduce((sum, m) => sum + (m.fat || 0), 0)
     : Math.round((targetCalories * 0.25) / 9);
 
+  // Excess / Over-eaten checks for macros
+  const isProteinOver = dailyTotals.protein > targetProtein;
+  const isCarbsOver = dailyTotals.carbs > targetCarbs;
+  const isFatOver = dailyTotals.fat > targetFat;
+  const hasAnyExcess = isOverTarget || isCarbsOver || isProteinOver || isFatOver;
+
   const mealIconComponents = {
     breakfast: { Icon: Sunrise, color: 'bg-amber-50 text-amber-600 border-amber-200' },
     lunch:     { Icon: Sun,     color: 'bg-orange-50 text-orange-600 border-orange-200' },
     snacks:    { Icon: Apple,   color: 'bg-rose-50 text-rose-600 border-rose-200' },
     dinner:    { Icon: Moon,    color: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
+  };
+
+  const getMealTypeLabel = (meal, idx) => {
+    const raw = (meal?.meal || '').toLowerCase().trim();
+    if (raw === 'breakfast') return 'Breakfast';
+    if (raw === 'lunch') return 'Lunch';
+    if (raw === 'snacks' || raw === 'snack') return 'Snacks';
+    if (raw === 'dinner') return 'Dinner';
+    const defaultOrder = ['Breakfast', 'Lunch', 'Snacks', 'Dinner'];
+    return defaultOrder[idx] || 'Meal';
   };
 
   return (
@@ -304,6 +357,45 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Over-eaten / Excess Caution Warning Banner */}
+            {hasAnyExcess && (
+              <div className="bg-rose-50 border border-rose-200/80 rounded-2xl p-4 flex items-start gap-3.5 text-rose-900 shadow-xs animate-fade-in">
+                <span className="p-2 bg-rose-100 text-rose-600 rounded-xl shrink-0 mt-0.5">
+                  <AlertTriangle size={18} />
+                </span>
+                <div className="space-y-1 text-xs">
+                  <p className="font-extrabold text-sm text-rose-900">
+                    Caution! Over-Eaten Today ⚠️
+                  </p>
+                  <p className="font-medium text-rose-700 leading-relaxed">
+                    You have exceeded your daily recommended nutritional targets:
+                  </p>
+                  <ul className="space-y-0.5 mt-1 text-[11px] font-bold text-rose-800">
+                    {isOverTarget && (
+                      <li className="flex items-center gap-1">
+                        • <span>Calories exceeded by <strong>+{consumedCalories - targetCalories} kcal</strong></span>
+                      </li>
+                    )}
+                    {isCarbsOver && (
+                      <li className="flex items-center gap-1">
+                        • <span>Carbs exceeded by <strong>+{dailyTotals.carbs - targetCarbs}g</strong></span>
+                      </li>
+                    )}
+                    {isProteinOver && (
+                      <li className="flex items-center gap-1">
+                        • <span>Protein exceeded by <strong>+{dailyTotals.protein - targetProtein}g</strong></span>
+                      </li>
+                    )}
+                    {isFatOver && (
+                      <li className="flex items-center gap-1">
+                        • <span>Fat exceeded by <strong>+{dailyTotals.fat - targetFat}g</strong></span>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            )}
+
             {trackerLoading ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-500 border-t-transparent" />
@@ -349,15 +441,15 @@ export default function Dashboard() {
                         / {targetCalories} kcal
                       </span>
                       <span className={`text-[10px] font-black uppercase mt-1 px-2 py-0.5 rounded-full ${
-                        isOverTarget ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-800'
+                        isOverTarget ? 'bg-rose-100 text-rose-700 font-extrabold' : 'bg-emerald-100 text-emerald-800'
                       }`}>
-                        {isOverTarget ? 'Over Target' : `${calPercent}% of Goal`}
+                        {isOverTarget ? 'Over Target ⚠️' : `${calPercent}% of Goal`}
                       </span>
                     </div>
                   </div>
 
                   <div className="mt-4 text-center">
-                    <p className="text-xs font-bold text-gray-500">
+                    <p className={`text-xs font-bold ${isOverTarget ? 'text-rose-600' : 'text-gray-500'}`}>
                       {isOverTarget
                         ? `Exceeded daily target by ${consumedCalories - targetCalories} kcal`
                         : `${caloriesLeft} kcal remaining for today`}
@@ -374,12 +466,23 @@ export default function Dashboard() {
                   {/* Protein */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs font-bold">
-                      <span className="text-gray-700">Protein</span>
-                      <span className="text-gray-900 font-extrabold">{dailyTotals.protein}g / {targetProtein}g</span>
+                      <span className="text-gray-700 flex items-center gap-1.5">
+                        Protein
+                        {isProteinOver && (
+                          <span className="text-[10px] text-rose-600 font-extrabold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                            +{dailyTotals.protein - targetProtein}g over
+                          </span>
+                        )}
+                      </span>
+                      <span className={`font-extrabold ${isProteinOver ? 'text-rose-600' : 'text-gray-900'}`}>
+                        {dailyTotals.protein}g / {targetProtein}g
+                      </span>
                     </div>
                     <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
                       <div
-                        className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          isProteinOver ? 'bg-rose-500' : 'bg-emerald-500'
+                        }`}
                         style={{ width: `${Math.min((dailyTotals.protein / targetProtein) * 100, 100)}%` }}
                       />
                     </div>
@@ -388,12 +491,23 @@ export default function Dashboard() {
                   {/* Carbs */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs font-bold">
-                      <span className="text-gray-700">Carbs</span>
-                      <span className="text-gray-900 font-extrabold">{dailyTotals.carbs}g / {targetCarbs}g</span>
+                      <span className="text-gray-700 flex items-center gap-1.5">
+                        Carbs
+                        {isCarbsOver && (
+                          <span className="text-[10px] text-rose-600 font-extrabold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                            +{dailyTotals.carbs - targetCarbs}g over
+                          </span>
+                        )}
+                      </span>
+                      <span className={`font-extrabold ${isCarbsOver ? 'text-rose-600' : 'text-gray-900'}`}>
+                        {dailyTotals.carbs}g / {targetCarbs}g
+                      </span>
                     </div>
                     <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
                       <div
-                        className="bg-amber-400 h-full rounded-full transition-all duration-500"
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          isCarbsOver ? 'bg-rose-500' : 'bg-amber-400'
+                        }`}
                         style={{ width: `${Math.min((dailyTotals.carbs / targetCarbs) * 100, 100)}%` }}
                       />
                     </div>
@@ -402,12 +516,23 @@ export default function Dashboard() {
                   {/* Fat */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs font-bold">
-                      <span className="text-gray-700">Fat</span>
-                      <span className="text-gray-900 font-extrabold">{dailyTotals.fat}g / {targetFat}g</span>
+                      <span className="text-gray-700 flex items-center gap-1.5">
+                        Fat
+                        {isFatOver && (
+                          <span className="text-[10px] text-rose-600 font-extrabold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                            +{dailyTotals.fat - targetFat}g over
+                          </span>
+                        )}
+                      </span>
+                      <span className={`font-extrabold ${isFatOver ? 'text-rose-600' : 'text-gray-900'}`}>
+                        {dailyTotals.fat}g / {targetFat}g
+                      </span>
                     </div>
                     <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
                       <div
-                        className="bg-rose-400 h-full rounded-full transition-all duration-500"
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          isFatOver ? 'bg-rose-500' : 'bg-rose-400'
+                        }`}
                         style={{ width: `${Math.min((dailyTotals.fat / targetFat) * 100, 100)}%` }}
                       />
                     </div>
@@ -491,29 +616,65 @@ export default function Dashboard() {
             ) : todayDietPlan ? (
               <div className="space-y-3">
                 {todayDietPlan.meals.map((meal, idx) => {
-                  const iconConfig = mealIconComponents[meal.meal?.toLowerCase()] || {
+                  const mealType = (meal.meal || ['breakfast', 'lunch', 'snacks', 'dinner'][idx] || 'lunch').toLowerCase();
+                  const iconConfig = mealIconComponents[mealType] || {
                     Icon: Utensils,
                     color: 'bg-emerald-50 text-emerald-600 border-emerald-200',
                   };
                   const MealIcon = iconConfig.Icon;
+                  const typeLabel = getMealTypeLabel(meal, idx);
+                  const isLogged = loggedIndices[idx];
+                  const isLogging = loggingIndex === idx;
 
                   return (
                     <div
                       key={idx}
-                      className="bg-gray-50 border border-gray-100 p-3 rounded-2xl flex items-center justify-between gap-2"
+                      className="bg-gray-50 border border-gray-100 p-3 rounded-2xl flex items-center justify-between gap-2.5 transition hover:bg-white hover:border-gray-200"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <span className={`p-2 rounded-xl border shrink-0 ${iconConfig.color}`}>
                           <MealIcon size={16} />
                         </span>
                         <div className="min-w-0">
-                          <span className="text-[9px] uppercase font-bold text-emerald-600 block">{meal.meal}</span>
-                          <p className="text-xs font-bold text-gray-800 truncate leading-tight mt-0.5">{meal.name}</p>
+                          <span className="text-[10px] uppercase font-black tracking-wider text-emerald-600 block">
+                            {typeLabel}
+                          </span>
+                          <p className="text-xs font-bold text-gray-800 truncate leading-tight mt-0.5" title={meal.name}>
+                            {meal.name}
+                          </p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md shrink-0 border border-orange-150">
-                        {meal.calories} kcal
-                      </span>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-150">
+                          {meal.calories} kcal
+                        </span>
+
+                        <button
+                          onClick={() => handleQuickLogMeal(meal, idx)}
+                          disabled={isLogging}
+                          className={`flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-xl transition shadow-xs cursor-pointer ${
+                            isLogged
+                              ? 'bg-emerald-600 text-white shadow-emerald-600/20'
+                              : 'bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 hover:border-emerald-300 active:scale-95'
+                          }`}
+                          title="1-Click Log this planned meal to Dashboard tracker"
+                        >
+                          {isLogging ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-emerald-600 border-t-transparent" />
+                          ) : isLogged ? (
+                            <>
+                              <CheckCircle2 size={12} />
+                              <span>Logged</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus size={12} />
+                              <span>Log</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   );
                 })}

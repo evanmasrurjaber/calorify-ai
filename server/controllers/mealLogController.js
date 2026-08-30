@@ -153,7 +153,7 @@ const logMealByImage = async (req, res) => {
 // Log a meal by typing a food name → Gemini estimates calories/macros → saves
 const logMealByText = async (req, res) => {
   try {
-    const { foodName, mealType = 'snacks', portionDescription = '', date } = req.body;
+    const { foodName, mealType = 'snacks', portionDescription = '', date, calories, carbs, protein, fat } = req.body;
 
     if (!foodName || !foodName.trim()) {
       return res.status(400).json({ message: 'foodName is required.' });
@@ -162,21 +162,33 @@ const logMealByText = async (req, res) => {
     const combinedText = `${foodName} ${portionDescription}`;
     const logDate = parseMealDate(date, combinedText);
 
-    // Use Gemini text API to estimate nutrition
-    const nutrition = await estimateCaloriesFromText(foodName.trim(), portionDescription.trim());
+    // If explicit nutritional values are passed (e.g. from diet planner 1-click log), use them directly!
+    let nutrition = {
+      foodName: foodName.trim(),
+      calories: Number(calories),
+      carbs: Number(carbs),
+      protein: Number(protein),
+      fat: Number(fat),
+      confidence: 'High',
+      breakdown: portionDescription || foodName.trim(),
+    };
+
+    if (isNaN(nutrition.calories) || nutrition.calories <= 0) {
+      nutrition = await estimateCaloriesFromText(foodName.trim(), portionDescription.trim());
+    }
 
     const log = await MealLog.create({
       user:       req.user.id,
       mealType,
       date:       logDate,
-      foodName:   nutrition.foodName,
-      calories:   nutrition.calories,
-      carbs:      nutrition.carbs,
-      protein:    nutrition.protein,
-      fat:        nutrition.fat,
+      foodName:   nutrition.foodName || foodName.trim(),
+      calories:   Number(nutrition.calories) || 0,
+      carbs:      Number(nutrition.carbs) || 0,
+      protein:    Number(nutrition.protein) || 0,
+      fat:        Number(nutrition.fat) || 0,
       loggedVia:  'text',
-      confidence: nutrition.confidence,
-      breakdown:  nutrition.breakdown,
+      confidence: nutrition.confidence || 'Medium',
+      breakdown:  nutrition.breakdown || '',
     });
 
     // Update weekly summary in the background
