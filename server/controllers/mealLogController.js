@@ -100,8 +100,11 @@ const logMealByImage = async (req, res) => {
       return res.status(400).json({ message: 'No image file uploaded.' });
     }
 
+    // Check database for user's latest Pro status since it's not in the JWT
+    const currentUser = await require('../models/User').findById(req.user.id).select('isPro');
+    
     // Rate limiting for free users
-    if (!req.user.isPro) {
+    if (!currentUser || !currentUser.isPro) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       

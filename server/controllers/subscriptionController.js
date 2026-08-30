@@ -125,32 +125,6 @@ const getSubscriptionStatus = async (req, res) => {
   }
 };
 
-// @route POST /api/subscriptions/dev-bypass
-const devBypass = async (req, res) => {
-  try {
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 30); // 1 month pro
 
-    await User.findByIdAndUpdate(req.user.id, {
-      isPro: true,
-      subscriptionExpiry: expiryDate
-    });
 
-    await Subscription.create({
-      user: req.user.id,
-      plan: 'monthly',
-      bkashPaymentId: 'DEV_BYPASS_' + Date.now(),
-      bkashTrxId: 'DEV_TRX_' + Date.now(),
-      amount: '99',
-      status: 'active',
-      startDate: new Date(),
-      expiryDate: expiryDate
-    });
-
-    res.json({ success: true, message: 'Dev bypass successful!' });
-  } catch (error) {
-    res.status(500).json({ message: 'Dev bypass failed' });
-  }
-};
-
-module.exports = { initiatePayment, paymentCallback, getSubscriptionStatus, devBypass };
+module.exports = { initiatePayment, paymentCallback, getSubscriptionStatus };
