@@ -204,6 +204,24 @@ export default function MealLog() {
   const [historyTotals,  setHistoryTotals]  = useState({ calories: 0, carbs: 0, protein: 0, fat: 0 });
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  // ── Scans Left state ───
+  const [scansLeft, setScansLeft] = useState(3);
+
+  const refreshScansLeft = useCallback(async () => {
+    if (user?.isPro) return;
+    try {
+      const { data } = await getDailyLog(todayString(), 'daily');
+      const count = (data.logs || []).filter(l => l.loggedVia === 'image').length;
+      setScansLeft(Math.max(0, 3 - count));
+    } catch (err) {
+      console.error(err);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    refreshScansLeft();
+  }, [refreshScansLeft]);
+
   // derive the anchor date sent to the API for each period
   const historyAnchor =
     historyPeriod === 'daily'   ? historyDate :
@@ -323,6 +341,7 @@ export default function MealLog() {
       setImageResult(data.log);
       setImageSaved(true); // auto-saved on analysis
       fetchHistory(historyAnchor, historyPeriod);
+      refreshScansLeft();
     } catch (err) {
       if (err.response?.status === 403 && err.response?.data?.limitReached) {
         setImageError('LIMIT_REACHED');
@@ -363,6 +382,7 @@ export default function MealLog() {
     try {
       await deleteMealLog(id);
       fetchHistory(historyAnchor, historyPeriod);
+      refreshScansLeft();
     } catch {
       // silent fail — could add toast here
     }
@@ -453,6 +473,13 @@ export default function MealLog() {
                 )}
 
                 {/* Two picker buttons */}
+                {!user?.isPro && (
+                  <div className="mb-2 text-center">
+                    <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200">
+                      {scansLeft} scans left today
+                    </span>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   {/* Take Photo — opens device camera */}
                   <button
@@ -523,6 +550,11 @@ export default function MealLog() {
                       </div>
                       <p className="text-sm font-semibold text-gray-700 mb-1">Drag &amp; drop your meal photo</p>
                       <p className="text-xs text-gray-500">or click to browse — JPG, PNG up to 10 MB</p>
+                      {!user?.isPro && (
+                        <div className="mt-3 inline-block px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200">
+                          {scansLeft} scans left today
+                        </div>
+                      )}
                     </div>
                   )}
                   <input
