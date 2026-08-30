@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getActiveDietPlan } from '../../services/dietPlanService';
 import { getDailyLog } from '../../services/mealLogService';
+import { getUserProfile } from '../../services/userService';
 import {
   TrendingUp,
   Scale,
@@ -36,7 +37,8 @@ const formatLocalDate = (d = new Date()) => {
 };
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, login } = useAuth();
+  const [profile, setProfile] = useState(null);
   
   // Diet plan state
   const [todayDietPlan, setTodayDietPlan] = useState(null);
@@ -86,6 +88,23 @@ export default function Dashboard() {
     return mon.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   };
 
+  // Sync latest user profile and auth state on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const { data } = await getUserProfile();
+        if (data) {
+          setProfile(data);
+          const token = localStorage.getItem('calorify_token');
+          if (token) login(data, token);
+        }
+      } catch (err) {
+        console.error('Error syncing profile in dashboard:', err);
+      }
+    };
+    fetchUserData();
+  }, []);
+
   // Fetch active diet plan for the day
   useEffect(() => {
     const fetchDietPlan = async () => {
@@ -133,8 +152,13 @@ export default function Dashboard() {
     fetchTrackerData();
   }, [selectedDate]);
 
-  // Calorie calculations
-  const targetCalories = user?.dailyCalorieTarget || 2000;
+  // Calorie calculations dynamically linked to generated AI plan or user target
+  const targetCalories =
+    todayDietPlan?.totalCalories ||
+    profile?.dailyCalorieTarget ||
+    user?.dailyCalorieTarget ||
+    2000;
+
   const consumedCalories = dailyTotals.calories || 0;
   const caloriesLeft = Math.max(targetCalories - consumedCalories, 0);
   const isOverTarget = consumedCalories > targetCalories;
@@ -146,10 +170,18 @@ export default function Dashboard() {
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (calPercent / 100) * circumference;
 
-  // Macro calculations (custom targets based on healthy balance)
-  const targetProtein = 100;
-  const targetCarbs = 250;
-  const targetFat = 67;
+  // Macro calculations (dynamically computed from today's active plan or balanced macro split)
+  const targetProtein = todayDietPlan
+    ? todayDietPlan.meals.reduce((sum, m) => sum + (m.protein || 0), 0)
+    : Math.round((targetCalories * 0.25) / 4);
+
+  const targetCarbs = todayDietPlan
+    ? todayDietPlan.meals.reduce((sum, m) => sum + (m.carbs || 0), 0)
+    : Math.round((targetCalories * 0.50) / 4);
+
+  const targetFat = todayDietPlan
+    ? todayDietPlan.meals.reduce((sum, m) => sum + (m.fat || 0), 0)
+    : Math.round((targetCalories * 0.25) / 9);
 
   const mealIconComponents = {
     breakfast: { Icon: Sunrise, color: 'bg-amber-50 text-amber-600 border-amber-200' },
@@ -472,15 +504,15 @@ export default function Dashboard() {
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-gray-50 border border-gray-100 p-2.5 rounded-2xl text-center">
                 <span className="block text-[9px] font-bold text-gray-500 uppercase mb-0.5">Weight</span>
-                <span className="text-base font-black text-[#0F172A]">{user?.weight || '--'}<span className="text-[10px] font-bold text-gray-400 ml-0.5">kg</span></span>
+                <span className="text-base font-black text-[#0F172A]">{profile?.weight || user?.weight || '--'}<span className="text-[10px] font-bold text-gray-400 ml-0.5">kg</span></span>
               </div>
               <div className="bg-gray-50 border border-gray-100 p-2.5 rounded-2xl text-center">
                 <span className="block text-[9px] font-bold text-gray-500 uppercase mb-0.5">Height</span>
-                <span className="text-base font-black text-[#0F172A]">{user?.height || '--'}<span className="text-[10px] font-bold text-gray-400 ml-0.5">cm</span></span>
+                <span className="text-base font-black text-[#0F172A]">{profile?.height || user?.height || '--'}<span className="text-[10px] font-bold text-gray-400 ml-0.5">cm</span></span>
               </div>
               <div className="bg-gray-50 border border-gray-100 p-2.5 rounded-2xl text-center">
                 <span className="block text-[9px] font-bold text-gray-500 uppercase mb-0.5">Age</span>
-                <span className="text-base font-black text-[#0F172A]">{user?.age || '--'}<span className="text-[10px] font-bold text-gray-400 ml-0.5">yrs</span></span>
+                <span className="text-base font-black text-[#0F172A]">{profile?.age || user?.age || '--'}<span className="text-[10px] font-bold text-gray-400 ml-0.5">yrs</span></span>
               </div>
             </div>
 
@@ -495,7 +527,7 @@ export default function Dashboard() {
             <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center text-xs">
               <span className="font-bold text-[#565e74]">Current Goal:</span>
               <span className="bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded-full font-black text-[10px] uppercase">
-                {getGoalLabel(user?.goal)}
+                {getGoalLabel(profile?.goal || user?.goal)}
               </span>
             </div>
           </div>
