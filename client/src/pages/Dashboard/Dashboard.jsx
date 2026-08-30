@@ -26,6 +26,7 @@ import {
   Info,
   TrendingDown,
   Dumbbell,
+  Edit3,
 } from 'lucide-react';
 
 // Helper: Get local YYYY-MM-DD string without UTC timezone offset errors
@@ -184,12 +185,11 @@ export default function Dashboard() {
     fetchTrackerData();
   }, [selectedDate]);
 
-  // Calorie calculations dynamically auto-computed from active AI plan or user metrics (Mifflin-St Jeor)
+  // Calorie calculations dynamically auto-computed from active user metrics (Mifflin-St Jeor)
   const targetCalories = useMemo(() => {
-    if (todayDietPlan?.totalCalories) return todayDietPlan.totalCalories;
     const currentUser = profile || user;
     return computeDynamicTDEE(currentUser);
-  }, [todayDietPlan, profile, user]);
+  }, [profile, user]);
 
   const consumedCalories = dailyTotals.calories || 0;
   const caloriesLeft = Math.max(targetCalories - consumedCalories, 0);
@@ -530,9 +530,19 @@ export default function Dashboard() {
 
           {/* Health Metrics Card */}
           <div className="bg-white border border-[#e1e2e8] rounded-3xl p-6 shadow-sm">
-            <h3 className="text-[#565e74] text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Activity size={16} className="text-emerald-500" /> My Metrics
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[#565e74] text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                <Activity size={16} className="text-emerald-500" /> My Metrics
+              </h3>
+              <Link
+                to="/profile"
+                className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition"
+                title="Edit Health Metrics in Profile"
+              >
+                <Edit3 size={12} />
+                Edit
+              </Link>
+            </div>
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-gray-50 border border-gray-100 p-2.5 rounded-2xl text-center">
                 <span className="block text-[9px] font-bold text-gray-500 uppercase mb-0.5">Weight</span>
