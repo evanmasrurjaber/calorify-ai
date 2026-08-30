@@ -36,6 +36,38 @@ const formatLocalDate = (d = new Date()) => {
   return `${year}-${month}-${day}`;
 };
 
+// Helper: Auto-calculate personalized TDEE calorie need from user metrics (Mifflin-St Jeor)
+const computeDynamicTDEE = (u) => {
+  if (!u) return 2000;
+  const weight = Number(u.weight);
+  const height = Number(u.height);
+  const age = Number(u.age);
+
+  if (!weight || !height || !age) {
+    return u.dailyCalorieTarget && u.dailyCalorieTarget !== 2000 ? u.dailyCalorieTarget : 2000;
+  }
+
+  const activityMultipliers = {
+    sedentary: 1.2,
+    lightly_active: 1.375,
+    moderately_active: 1.55,
+    very_active: 1.725,
+  };
+
+  const genderConstant =
+    u.gender === 'male' ? 5 :
+    u.gender === 'female' ? -161 : -78;
+
+  const bmr = 10 * weight + 6.25 * height - 5 * age + genderConstant;
+  const multiplier = activityMultipliers[u.activityLevel] || 1.2;
+  let tdee = Math.round(bmr * multiplier);
+
+  if (u.goal === 'lose_weight') tdee = Math.round(tdee * 0.85);
+  if (u.goal === 'gain_muscle') tdee = Math.round(tdee * 1.10);
+
+  return Math.max(tdee, 1200);
+};
+
 export default function Dashboard() {
   const { user, login } = useAuth();
   const [profile, setProfile] = useState(null);
@@ -152,12 +184,12 @@ export default function Dashboard() {
     fetchTrackerData();
   }, [selectedDate]);
 
-  // Calorie calculations dynamically linked to generated AI plan or user target
-  const targetCalories =
-    todayDietPlan?.totalCalories ||
-    profile?.dailyCalorieTarget ||
-    user?.dailyCalorieTarget ||
-    2000;
+  // Calorie calculations dynamically auto-computed from active AI plan or user metrics (Mifflin-St Jeor)
+  const targetCalories = useMemo(() => {
+    if (todayDietPlan?.totalCalories) return todayDietPlan.totalCalories;
+    const currentUser = profile || user;
+    return computeDynamicTDEE(currentUser);
+  }, [todayDietPlan, profile, user]);
 
   const consumedCalories = dailyTotals.calories || 0;
   const caloriesLeft = Math.max(targetCalories - consumedCalories, 0);
