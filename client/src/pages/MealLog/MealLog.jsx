@@ -25,7 +25,6 @@ import {
   AlertTriangle,
   ListChecks,
   Images,
-  FolderOpen,
   CalendarDays,
   CalendarRange,
   ChevronDown,
@@ -174,7 +173,6 @@ export default function MealLog() {
   const fileInputRef        = useRef(null); // desktop: generic file browse
   const mobileCameraRef     = useRef(null); // mobile: take photo with camera
   const mobileGalleryRef    = useRef(null); // mobile: pick from photo library
-  const mobileFileRef       = useRef(null); // mobile: pick any file
 
   // ── Mobile detection ─────────────────────────────────────────────────────
   const [isMobile, setIsMobile] = useState(false);
@@ -454,8 +452,8 @@ export default function MealLog() {
                   </div>
                 )}
 
-                {/* Three picker buttons */}
-                <div className="grid grid-cols-3 gap-3">
+                {/* Two picker buttons */}
+                <div className="grid grid-cols-2 gap-3">
                   {/* Take Photo — opens device camera */}
                   <button
                     onClick={() => mobileCameraRef.current?.click()}
@@ -472,15 +470,6 @@ export default function MealLog() {
                   >
                     <Images size={24} />
                     <span className="text-[11px] font-semibold text-center leading-tight">Photo<br/>Library</span>
-                  </button>
-
-                  {/* Choose Files — any file from storage */}
-                  <button
-                    onClick={() => mobileFileRef.current?.click()}
-                    className="flex flex-col items-center gap-2 py-5 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-600 transition active:scale-95"
-                  >
-                    <FolderOpen size={24} />
-                    <span className="text-[11px] font-semibold text-center leading-tight">Choose<br/>Files</span>
                   </button>
                 </div>
 
@@ -499,14 +488,6 @@ export default function MealLog() {
                   ref={mobileGalleryRef}
                   type="file"
                   accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleImageSelect(e.target.files[0])}
-                />
-                {/* Any file */}
-                <input
-                  ref={mobileFileRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/*"
                   className="hidden"
                   onChange={(e) => handleImageSelect(e.target.files[0])}
                 />
