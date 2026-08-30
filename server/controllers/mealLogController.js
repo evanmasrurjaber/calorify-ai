@@ -114,7 +114,7 @@ const logMealByImage = async (req, res) => {
         createdAt: { $gte: today }
       });
 
-      if (scansToday >= 3) {
+      if (scansToday >= 2) {
         return res.status(403).json({ 
           message: 'Free tier limit reached. Upgrade to Pro for unlimited AI food scans!',
           limitReached: true

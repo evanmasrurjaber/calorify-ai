@@ -205,14 +205,14 @@ export default function MealLog() {
   const [historyLoading, setHistoryLoading] = useState(false);
 
   // ── Scans Left state ───
-  const [scansLeft, setScansLeft] = useState(3);
+  const [scansLeft, setScansLeft] = useState(2);
 
   const refreshScansLeft = useCallback(async () => {
     if (user?.isPro) return;
     try {
       const { data } = await getDailyLog(todayString(), 'daily');
       const count = (data.logs || []).filter(l => l.loggedVia === 'image').length;
-      setScansLeft(Math.max(0, 3 - count));
+      setScansLeft(Math.max(0, 2 - count));
     } catch (err) {
       console.error(err);
     }
@@ -585,7 +585,7 @@ export default function MealLog() {
                 </span>
                 <div>
                   <h4 className="text-rose-700 font-bold text-sm mb-1">Free Tier Limit Reached</h4>
-                  <p className="text-gray-500 text-xs mb-3">You've used all 3 AI food scans for today. Upgrade to Pro for unlimited AI scans and advanced nutrition insights.</p>
+                  <p className="text-gray-500 text-xs mb-3">You've used all 2 AI food scans for today. Upgrade to Pro for unlimited AI scans and advanced nutrition insights.</p>
                   <Link to="/subscription" className="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition">
                     Upgrade to Pro
                   </Link>
