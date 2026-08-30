@@ -169,8 +169,14 @@ const logMealByText = async (req, res) => {
       carbs: Number(carbs),
       protein: Number(protein),
       fat: Number(fat),
-      confidence: 'High',
-      breakdown: portionDescription || foodName.trim(),
+      confidence: 'high',
+      breakdown: [
+        {
+          item: foodName.trim(),
+          calories: Number(calories) || 0,
+          portionEstimate: portionDescription || '1 serving',
+        },
+      ],
     };
 
     if (isNaN(nutrition.calories) || nutrition.calories <= 0) {
@@ -187,8 +193,16 @@ const logMealByText = async (req, res) => {
       protein:    Number(nutrition.protein) || 0,
       fat:        Number(nutrition.fat) || 0,
       loggedVia:  'text',
-      confidence: nutrition.confidence || 'Medium',
-      breakdown:  nutrition.breakdown || '',
+      confidence: (nutrition.confidence || 'high').toLowerCase(),
+      breakdown:  Array.isArray(nutrition.breakdown)
+        ? nutrition.breakdown
+        : [
+            {
+              item: foodName.trim(),
+              calories: Number(nutrition.calories) || 0,
+              portionEstimate: typeof nutrition.breakdown === 'string' ? nutrition.breakdown : '1 serving',
+            },
+          ],
     });
 
     // Update weekly summary in the background
