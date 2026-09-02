@@ -38,12 +38,12 @@ const userSchema = new mongoose.Schema(
 
     // Notification preferences
     notifications: {
-      dailyMealReminder: { type: Boolean, default: true },
       weeklyPlanReset: { type: Boolean, default: true },
       loginAlerts: { type: Boolean, default: true },
       challengeAlerts: { type: Boolean, default: true },
       communityAlerts: { type: Boolean, default: true },
     },
+    timezone: { type: String, default: 'UTC' },
 
     // Bookmarks
     bookmarks: [{ type: mongoose.Schema.Types.Mixed }],

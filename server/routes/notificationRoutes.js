@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const {
-  sendMealReminder,
   sendWeeklyPlanRefreshReminder,
   getGoogleAuthUrl,
   googleAuthCallback,
@@ -13,7 +12,6 @@ router.get('/auth', getGoogleAuthUrl);
 router.get('/callback', googleAuthCallback);
 
 // Reminders
-router.post('/send-reminder', protect, sendMealReminder);
 router.post('/send-weekly-refresh', protect, sendWeeklyPlanRefreshReminder);
 
 module.exports = router;

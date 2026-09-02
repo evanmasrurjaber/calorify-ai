@@ -87,39 +87,6 @@ const googleAuthCallback = async (req, res) => {
   }
 };
 
-// @route POST /api/notifications/send-reminder
-const sendMealReminder = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    if (!user.notifications?.dailyMealReminder) {
-      return res.status(400).json({ message: 'User has daily meal reminders disabled' });
-    }
-
-    const subject = `🍽️ Calorify: Time to Log Your Meals!`;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-        <h2 style="color: #10b981; text-align: center; margin-bottom: 20px;">🍽️ Meal Log Reminder</h2>
-        <p style="font-size: 16px; color: #334155; line-height: 1.6;">Hi <strong>${user.name}</strong>,</p>
-        <p style="font-size: 16px; color: #334155; line-height: 1.6;">This is a friendly reminder to log your diet intake (breakfast, lunch, dinner, or snacks) on Calorify today.</p>
-        <p style="font-size: 16px; color: #334155; line-height: 1.6;">Logging your meals consistently helps you stay on top of your daily calorie target and reach your health goals!</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="http://localhost:5173/meal-log" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(16,185,129,0.2);">Log Your Meals Now</a>
-        </div>
-        <p style="font-size: 14px; color: #64748b; line-height: 1.6; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 15px; margin-top: 20px;">You can manage your notification preferences anytime from your Profile settings page.</p>
-        <p style="font-size: 16px; color: #334155; line-height: 1.6; margin-top: 30px;">Best regards,<br/><strong>The Calorify Team</strong></p>
-      </div>
-    `;
-
-    await sendEmail(user.email, subject, html);
-    res.json({ success: true, message: 'Meal reminder email sent' });
-  } catch (error) {
-    console.error('Error in sendMealReminder:', error);
-    res.status(500).json({ message: error.message });
-  }
-};
-
 // @route POST /api/notifications/send-weekly-refresh
 const sendWeeklyPlanRefreshReminder = async (req, res) => {
   try {
@@ -154,7 +121,6 @@ const sendWeeklyPlanRefreshReminder = async (req, res) => {
 };
 
 module.exports = {
-  sendMealReminder,
   sendWeeklyPlanRefreshReminder,
   getGoogleAuthUrl,
   googleAuthCallback,

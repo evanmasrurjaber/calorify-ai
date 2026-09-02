@@ -98,9 +98,10 @@ export default function Challenges() {
   const fetchAllData = async () => {
     try {
       setLoading(true);
+      const localDateStr = new Date().toLocaleDateString('en-CA');
       const [profileRes, challengeRes, progressRes] = await Promise.allSettled([
         getUserProfile(),
-        getTodayChallenges(),
+        getTodayChallenges(localDateStr),
         getProgress()
       ]);
 
@@ -203,11 +204,15 @@ export default function Challenges() {
     }
   };
 
-  // Determine user points & levels
-  const userPoints = profile?.points || 0;
+  // Calculate user points earned from today's daily challenges (starts at 0 on new day)
+  const todayPoints = challenges.reduce(
+    (sum, c) => (c.completed ? sum + (c.pointsReward || 0) : sum),
+    0
+  );
+  const userPoints = todayPoints;
   const userUnlockedBadges = profile?.unlockedBadges || [];
   
-  // Calculate next milestone progress (accessible daily target thresholds)
+  // Calculate next milestone progress based on today's points earned
   const getMilestoneDetails = () => {
     if (userPoints < 100) {
       return {
@@ -306,8 +311,8 @@ export default function Challenges() {
           <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-4 py-2.5 rounded-2xl">
             <Sparkles className="text-emerald-600" size={20} />
             <div>
-              <span className="block text-[10px] font-bold text-emerald-700 uppercase">Total Points</span>
-              <span className="text-sm font-black text-gray-900">{userPoints} pts</span>
+              <span className="block text-[10px] font-bold text-emerald-700 uppercase">Today's Points</span>
+              <span className="text-sm font-black text-gray-900">{todayPoints} / 330 pts</span>
             </div>
           </div>
         </div>
@@ -516,11 +521,15 @@ export default function Challenges() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 pt-2">
           {badgesConfig.map((badge) => {
-            const isUnlocked =
-              userUnlockedBadges.includes(badge.key) ||
-              (badge.key === 'diet_legend' && userPoints >= 330) ||
-              (badge.key === 'nutrition_master' && userPoints >= 200) ||
-              (badge.key === 'healthy_starter' && userPoints >= 100);
+            // Habit challenge badges unlock when the corresponding challenge is completed today
+            const isHabitCompleted = challenges.some((c) => c.badgeKey === badge.key && c.completed);
+            // Milestone badges unlock when today's points reach the milestone target
+            const isMilestoneEarned =
+              (badge.key === 'diet_legend' && todayPoints >= 330) ||
+              (badge.key === 'nutrition_master' && todayPoints >= 200) ||
+              (badge.key === 'healthy_starter' && todayPoints >= 100);
+
+            const isUnlocked = isHabitCompleted || isMilestoneEarned;
             const IconComponent = badge.icon;
             
             return (

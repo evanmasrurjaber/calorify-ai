@@ -136,7 +136,14 @@ export default function Community() {
     try {
       setLoadingNotifications(true);
       const { data } = await getCommunityNotifications();
-      setNotifications(data.notifications || []);
+      const list = data.notifications || [];
+      // Guarantee newest first, then oldest
+      const sorted = [...list].sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      });
+      setNotifications(sorted);
       setUnreadNotifications(data.count || 0);
     } catch (err) {
       console.error('Error fetching notifications:', err);

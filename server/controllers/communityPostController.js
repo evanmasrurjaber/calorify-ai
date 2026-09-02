@@ -65,7 +65,7 @@ const createPost = async (req, res) => {
     const userPostCount = await CommunityPost.countDocuments({ author: req.user.id });
     if (userPostCount === 1) {
       const user = await User.findById(req.user.id);
-      if (user && user.email) {
+      if (user && user.email && user.notifications?.communityAlerts !== false) {
         const subject = '🎉 Congratulations on publishing your first Community Diet Post!';
         const html = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
@@ -110,7 +110,7 @@ const createPost = async (req, res) => {
             userDoc.unlockedBadges.push('community_diet_pioneer');
             userDoc.badge = 'community_diet_pioneer';
             await userDoc.save();
-            sendBadgeUnlockEmail(userDoc.email, userDoc.name, 'Community Diet Pioneer').catch((e) =>
+            sendBadgeUnlockEmail(userDoc.email, userDoc.name, 'Community Diet Pioneer', userDoc._id).catch((e) =>
               console.error(e.message)
             );
           } else {
@@ -193,13 +193,19 @@ const getCommunityNotifications = async (req, res) => {
         for (const liker of post.likes) {
           const likerId = (liker._id || liker).toString();
           if (likerId !== req.user.id.toString()) {
+            // Find specific timestamp when this like was created; never use post.updatedAt
+            const meta = (post.likesTimestamps || []).find(
+              (lt) => (lt.user?._id || lt.user || '').toString() === likerId
+            );
+            const likeDate = meta?.createdAt || post.createdAt;
+
             notifications.push({
               id: `like_${post._id}_${likerId}`,
               type: 'like',
               user: liker,
               post: { _id: post._id, title: post.title, category: post.category },
               message: `${liker.name || 'A community member'} liked your post`,
-              createdAt: post.updatedAt || post.createdAt,
+              createdAt: likeDate,
             });
           }
         }
@@ -225,8 +231,15 @@ const getCommunityNotifications = async (req, res) => {
       }
     }
 
-    // Sort newest first
-    notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Helper to safely parse timestamp
+    const getTime = (dateVal) => {
+      if (!dateVal) return 0;
+      const t = new Date(dateVal).getTime();
+      return isNaN(t) ? 0 : t;
+    };
+
+    // Sort strictly newest notification first, then oldest
+    notifications.sort((a, b) => getTime(b.createdAt) - getTime(a.createdAt));
 
     res.json({
       success: true,
@@ -276,9 +289,14 @@ const toggleLikePost = async (req, res) => {
     if (alreadyLiked) {
       // Remove like
       post.likes = post.likes.filter((id) => id.toString() !== userIdStr);
+      post.likesTimestamps = (post.likesTimestamps || []).filter(
+        (item) => (item.user?._id || item.user || '').toString() !== userIdStr
+      );
     } else {
       // Add like
       post.likes.push(req.user.id);
+      if (!post.likesTimestamps) post.likesTimestamps = [];
+      post.likesTimestamps.push({ user: req.user.id, createdAt: new Date() });
     }
 
     await post.save();

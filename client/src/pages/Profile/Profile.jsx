@@ -48,8 +48,10 @@ export default function Profile() {
     badge: 'none',
     isPro: false,
     notifications: {
-      dailyMealReminder: true,
       weeklyPlanReset: true,
+      loginAlerts: true,
+      challengeAlerts: true,
+      communityAlerts: true,
     },
   });
 
@@ -70,8 +72,15 @@ export default function Profile() {
     try {
       setLoading(true);
       const { data } = await getUserProfile();
+
       setProfile({
         ...data,
+        notifications: {
+          weeklyPlanReset: data.notifications?.weeklyPlanReset !== false,
+          loginAlerts: data.notifications?.loginAlerts !== false,
+          challengeAlerts: data.notifications?.challengeAlerts !== false,
+          communityAlerts: data.notifications?.communityAlerts !== false,
+        },
         medicalConditions: data.medicalConditions?.join(', ') || '',
         allergies: data.allergies?.join(', ') || '',
       });
@@ -160,14 +169,29 @@ export default function Profile() {
     setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleNotificationToggle = (field) => {
+  const handleNotificationToggle = async (field) => {
+    const currentVal = profile.notifications?.[field] !== false;
+    const nextVal = !currentVal;
+    const updatedNotifications = {
+      ...(profile.notifications || {}),
+      [field]: nextVal,
+    };
+
     setProfile((prev) => ({
       ...prev,
-      notifications: {
-        ...prev.notifications,
-        [field]: !prev.notifications?.[field],
-      },
+      notifications: updatedNotifications,
     }));
+
+    try {
+      await updateUserProfile({ notifications: updatedNotifications });
+      setMessage({
+        type: 'success',
+        text: `✅ Preference saved: ${nextVal ? 'Turned ON' : 'Turned OFF'}`,
+      });
+      setTimeout(() => setMessage({ type: '', text: '' }), 2500);
+    } catch (err) {
+      console.error('Failed to auto-save preference:', err);
+    }
   };
 
   const calculateBMI = () => {
@@ -807,29 +831,7 @@ export default function Profile() {
           </div>
 
           <div className="space-y-4">
-            {/* Toggle 1: Daily Meal Reminders */}
-            <div
-              onClick={() => handleNotificationToggle('dailyMealReminder')}
-              className="flex items-center justify-between p-4 bg-gray-50/70 hover:bg-gray-50 rounded-2xl border border-gray-150 cursor-pointer transition"
-            >
-              <div className="space-y-0.5">
-                <p className="text-sm font-bold text-gray-900">Daily Meal Reminders</p>
-                <p className="text-xs text-gray-500">Receive email alerts reminding you to log your meals and hit calorie targets.</p>
-              </div>
-              <div
-                className={`w-12 h-6 rounded-full flex items-center transition-colors duration-300 p-1 shadow-inner shrink-0 ${
-                  profile.notifications?.dailyMealReminder !== false ? 'bg-emerald-500' : 'bg-gray-300'
-                }`}
-              >
-                <div
-                  className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
-                    profile.notifications?.dailyMealReminder !== false ? 'translate-x-6' : 'translate-x-0'
-                  }`}
-                />
-              </div>
-            </div>
-
-            {/* Toggle 2: Weekly Diet Plan Reset */}
+            {/* Toggle 1: Weekly Diet Plan Reset */}
             <div
               onClick={() => handleNotificationToggle('weeklyPlanReset')}
               className="flex items-center justify-between p-4 bg-gray-50/70 hover:bg-gray-50 rounded-2xl border border-gray-150 cursor-pointer transition"

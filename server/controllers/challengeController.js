@@ -2,33 +2,51 @@ const Challenge = require('../models/Challenge');
 const User = require('../models/User');
 const { sendEmail } = require('../services/gmailService');
 
-// Helper to get local start and end of today
-const getStartAndEndOfToday = () => {
-  const start = new Date();
+// Helper to get local start and end of day (defaults to today)
+const getStartAndEndOfDay = (dateStr) => {
+  let anchor;
+  if (dateStr && typeof dateStr === 'string' && dateStr.includes('-')) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    anchor = new Date(y, m - 1, d);
+  } else {
+    anchor = new Date();
+  }
+  const start = new Date(anchor);
   start.setHours(0, 0, 0, 0);
-  const end = new Date();
+  const end = new Date(anchor);
   end.setHours(23, 59, 59, 999);
   return { start, end };
 };
 
+// Helper for today's start and end
+const getStartAndEndOfToday = () => getStartAndEndOfDay();
+
 // Helper to send badge unlock email notification
-const sendBadgeUnlockEmail = async (userEmail, userName, badgeLabel) => {
-  const subject = `🎉 congratulations! you have unlocked the badge "${badgeLabel}"`;
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-      <h2 style="color: #10b981; text-align: center; margin-bottom: 20px;">🏆 Badge Unlocked!</h2>
-      <p style="font-size: 16px; color: #334155; line-height: 1.6;">Hi <strong>${userName}</strong>,</p>
-      <p style="font-size: 16px; color: #334155; line-height: 1.6;">Congratulations! You have successfully completed your daily challenge and unlocked the <strong>${badgeLabel}</strong> badge on Calorify today.</p>
-      <div style="text-align: center; margin: 40px 0; background-color: #f8fafc; padding: 20px; border-radius: 16px;">
-        <span style="font-size: 64px;">✨</span>
-        <h3 style="margin-top: 15px; margin-bottom: 5px; color: #0f172a; font-size: 20px; font-weight: 800;">${badgeLabel}</h3>
-        <p style="color: #64748b; font-size: 14px; margin-top: 5px;">Unlocked on Calorify</p>
-      </div>
-      <p style="font-size: 14px; color: #64748b; line-height: 1.6; text-align: center; border-t: 1px solid #f1f5f9; pt-15;">Keep logging your habits, tracking your daily nutrition intake, and challenging yourself to unlock the next level milestones!</p>
-      <p style="font-size: 16px; color: #334155; line-height: 1.6; margin-top: 30px;">Best regards,<br/><strong>The Calorify Team</strong></p>
-    </div>
-  `;
+const sendBadgeUnlockEmail = async (userEmail, userName, badgeLabel, userId) => {
   try {
+    if (userId) {
+      const user = await User.findById(userId);
+      if (user && user.notifications?.challengeAlerts === false) {
+        console.log(`[Email Suppressed]: User ${userEmail} has challengeAlerts disabled.`);
+        return;
+      }
+    }
+
+    const subject = `🎉 congratulations! you have unlocked the badge "${badgeLabel}"`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+        <h2 style="color: #10b981; text-align: center; margin-bottom: 20px;">🏆 Badge Unlocked!</h2>
+        <p style="font-size: 16px; color: #334155; line-height: 1.6;">Hi <strong>${userName}</strong>,</p>
+        <p style="font-size: 16px; color: #334155; line-height: 1.6;">Congratulations! You have successfully completed your daily challenge and unlocked the <strong>${badgeLabel}</strong> badge on Calorify today.</p>
+        <div style="text-align: center; margin: 40px 0; background-color: #f8fafc; padding: 20px; border-radius: 16px;">
+          <span style="font-size: 64px;">✨</span>
+          <h3 style="margin-top: 15px; margin-bottom: 5px; color: #0f172a; font-size: 20px; font-weight: 800;">${badgeLabel}</h3>
+          <p style="color: #64748b; font-size: 14px; margin-top: 5px;">Unlocked on Calorify</p>
+        </div>
+        <p style="font-size: 14px; color: #64748b; line-height: 1.6; text-align: center; border-t: 1px solid #f1f5f9; pt-15;">Keep logging your habits, tracking your daily nutrition intake, and challenging yourself to unlock the next level milestones!</p>
+        <p style="font-size: 16px; color: #334155; line-height: 1.6; margin-top: 30px;">Best regards,<br/><strong>The Calorify Team</strong></p>
+      </div>
+    `;
     await sendEmail(userEmail, subject, html);
     console.log(`[Email Sent]: Badge unlock email sent to ${userEmail}`);
   } catch (err) {
@@ -39,7 +57,13 @@ const sendBadgeUnlockEmail = async (userEmail, userName, badgeLabel) => {
 // Helper to check and send all completed challenges email
 const checkAndSendAllCompletedEmail = async (userId, userEmail, userName) => {
   try {
-    const { start, end } = getStartAndEndOfToday();
+    const user = await User.findById(userId);
+    if (user && user.notifications?.challengeAlerts === false) {
+      console.log(`[Email Suppressed]: User ${userEmail} has challengeAlerts disabled.`);
+      return;
+    }
+
+    const { start, end } = getStartAndEndOfDay();
     const todayChallenges = await Challenge.find({
       user: userId,
       date: { $gte: start, $lte: end },
@@ -71,7 +95,7 @@ const checkAndSendAllCompletedEmail = async (userId, userEmail, userName) => {
 // @route GET /api/challenges/today
 const getTodayChallenges = async (req, res) => {
   try {
-    const { start, end } = getStartAndEndOfToday();
+    const { start, end } = getStartAndEndOfDay(req.query.date);
 
     // Fetch existing challenges for today
     let challenges = await Challenge.find({
@@ -236,7 +260,7 @@ const logChallengeProgress = async (req, res) => {
           .split('_')
           .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
           .join(' ');
-        sendBadgeUnlockEmail(user.email, user.name, badgeLabel).catch((err) => {
+        sendBadgeUnlockEmail(user.email, user.name, badgeLabel, user._id).catch((err) => {
           console.error('Failed to send email:', err.message);
         });
       }
@@ -300,7 +324,7 @@ const completeChallenge = async (req, res) => {
         .split('_')
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' ');
-      sendBadgeUnlockEmail(user.email, user.name, badgeLabel).catch((err) => {
+      sendBadgeUnlockEmail(user.email, user.name, badgeLabel, user._id).catch((err) => {
         console.error('Failed to send email:', err.message);
       });
     }
