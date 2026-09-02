@@ -220,6 +220,11 @@ export default function Bookmarks() {
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
               <span className="text-red-500 text-xl">❤</span> Bookmarked Recipes
+              {!user?.isPro && (
+                <span className="ml-auto text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
+                  {Math.max(0, 5 - bookmarks.length)}/5 Bookmarks Left
+                </span>
+              )}
             </h3>
             
             {bookmarks.length === 0 ? (

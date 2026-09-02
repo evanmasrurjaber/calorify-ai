@@ -73,22 +73,7 @@ export default function Subscription() {
     }
   };
 
-  const handleDevBypass = async () => {
-    try {
-      setLoading(true);
-      setErrorMsg('');
-      const { data } = await api.post('/subscriptions/dev-bypass');
-      if (data.success) {
-        setSuccess(true);
-        if (user && token) {
-          login({ ...user, isPro: true }, token);
-        }
-      }
-    } catch (err) {
-      setErrorMsg('Failed to bypass payment.');
-      setLoading(false);
-    }
-  };
+
 
   if (verifying) {
     return (
@@ -167,7 +152,7 @@ export default function Subscription() {
               <Check className="w-5 h-5 text-gray-400 shrink-0" /> Save up to 5 Bookmarks
             </li>
             <li className="flex items-start gap-3 text-gray-500 font-medium opacity-50">
-              <Camera className="w-5 h-5 text-gray-400 shrink-0" /> AI Food Scanner (3/day)
+              <Camera className="w-5 h-5 text-gray-400 shrink-0" /> AI Food Scanner (2/day)
             </li>
           </ul>
           <button disabled className="w-full bg-gray-100 text-gray-500 font-bold py-4 rounded-2xl cursor-not-allowed">
@@ -222,14 +207,7 @@ export default function Subscription() {
             )}
           </button>
           
-          {/* Dev Bypass Button */}
-          <button
-            onClick={handleDevBypass}
-            disabled={loading}
-            className="w-full mt-3 bg-white/20 hover:bg-white/30 text-white font-bold py-3 rounded-2xl transition flex items-center justify-center text-sm border border-white/30"
-          >
-            Bypass Payment (Dev Mode)
-          </button>
+
 
           <p className="text-center text-xs text-emerald-200 mt-4 font-medium flex items-center justify-center gap-1">
             <Shield size={12} /> Secure sandbox payment gateway
