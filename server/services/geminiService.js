@@ -6,7 +6,7 @@ const axios = require('axios');
 // Supported Gemini Models (with automatic multi-model fallback for quota limits)
 // gemini-3.7-flash is listed first — confirmed working on this network
 const GEMINI_MODELS = [
-  'gemini-3.5-flash-light',
+  'gemini-3.5-flash-lite',
   'gemini-3.5-flash',
   'gemini-3.7-flash',
   'gemini-3.8-flash',
