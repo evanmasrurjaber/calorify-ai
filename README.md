@@ -2,7 +2,7 @@
 
 An AI powered nutrition and diet management platform built for Bangladeshi users. Calorify combines calorie estimation from food photos, personalized 7-day meal planning, wearable data sync, medical report parsing, and local grocery integration all in one place.
 
-**[🌐 Live Demo → calorify-live.vercel.app](https://calorify-live.vercel.app)**
+**🌐 Live Demo → [calorify-live.vercel.app](https://calorify-live.vercel.app)**
 
 ---
 
