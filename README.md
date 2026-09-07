@@ -1,8 +1,13 @@
 # Calorify
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
 An AI powered nutrition and diet management platform built for Bangladeshi users. Calorify combines calorie estimation from food photos, personalized 7-day meal planning, wearable data sync, medical report parsing, and local grocery integration all in one place.
 
-**🌐 Live Demo → [calorify-live.vercel.app](https://calorify-live.vercel.app)**
+### 🌐 Live Demo
+**[calorify-live.vercel.app](https://calorify-live.vercel.app)**
 
 ---
 
